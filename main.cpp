@@ -1,13 +1,8 @@
 #include <iostream>
 #include <cmath>
+#include "ArgumentParser.hpp"
 
 using namespace std;
-
-// тип граничных условий
-enum class BorderConditionType {
-    FirstKind, // первого рода
-    Periodic // периодические
-};
 
 class HyperbolicEquationSolver {
     double Lx, Ly, Lz; // параметры параллелепипеда
@@ -169,9 +164,9 @@ double HyperbolicEquationSolver::EvaluateError(double ***u, double t) const {
 
 // решение
 void HyperbolicEquationSolver::Solve(int maxSteps) {
-    double ****u = new double***[maxSteps];
+    double ****u = new double***[maxSteps + 1];
 
-    for (int i = 0; i < maxSteps; i++)
+    for (int i = 0; i <= maxSteps; i++)
         u[i] = InitLayer(N + 1, N + 1, N + 1);
 
     FillInitialValues(u[0], u[1]); // заполняем начальные условия
@@ -179,7 +174,7 @@ void HyperbolicEquationSolver::Solve(int maxSteps) {
     cout << "Layer 0 max error: " << EvaluateError(u[0], 0) << endl;
     cout << "Layer 1 max error: " << EvaluateError(u[1], tau) << endl;
 
-    for (int step = 2; step < maxSteps; step++) {
+    for (int step = 2; step <= maxSteps; step++) {
         FillBorderValues(u[step], step * tau); // TODO: периодические граничные условия на шаге > 1 считаются иначе?
     
         #pragma omp parallel for collapse(3)
@@ -191,7 +186,7 @@ void HyperbolicEquationSolver::Solve(int maxSteps) {
         cout << "Layer " << step << " max error: " << EvaluateError(u[step], step * tau) << endl;
     }
 
-    for (int i = 0; i < maxSteps; i++)
+    for (int i = 0; i <= maxSteps; i++)
         FreeLayer(u[i], N + 1, N + 1, N + 1);
 
     delete[] u;
@@ -210,24 +205,38 @@ void HyperbolicEquationSolver::PrintParams() const {
     cout << "x_i = i*" << hx << ", i = 0..." << N << endl;
     cout << "y_i = i*" << hy << ", i = 0..." << N << endl;
     cout << "z_i = i*" << hz << ", i = 0..." << N << endl;
-    cout << "t_i = i*" << tau << ", i = 0..." << K << endl;
+    cout << "t_i = i*" << tau << ", i = 0..." << K << endl << endl;
+
+    cout << "Type of border condition along axis X: " << (btX == BorderConditionType::FirstKind ? "first kind" : "periodic") << endl;
+    cout << "Type of border condition along axis Y: " << (btY == BorderConditionType::FirstKind ? "first kind" : "periodic") << endl;
+    cout << "Type of border condition along axis Z: " << (btZ == BorderConditionType::FirstKind ? "first kind" : "periodic") << endl;
 }
 
-int main() {
-    double Lx = 1;
-    double Ly = 1;
-    double Lz = 1;
-    double T = 1;
+int main(int argc, char **argv) {
+    ArgumentParser parser;
 
-    int N = 20;
-    int K = 500;
+    if (argc == 2 && !strcmp(argv[1], "--help")) {
+        parser.Help();
+        return 0;
+    }
 
-    BorderConditionType btX = BorderConditionType::FirstKind; // граничные условия первого рода по x
-    BorderConditionType btY = BorderConditionType::Periodic; // периодические граничные условия по y
-    BorderConditionType btZ = BorderConditionType::FirstKind; // граничные условия первого рода по z
 
-    HyperbolicEquationSolver solver(Lx, Ly, Lz, T, N, K, btX, btY, btZ);
+    Arguments arguments;
 
-    solver.PrintParams();
-    solver.Solve(22);
+    try {
+        arguments = parser.Parse(argc, argv);
+    }
+    catch (const char *error) {
+        return -1;
+    }
+
+    HyperbolicEquationSolver solver(arguments.Lx, arguments.Ly, arguments.Lz, arguments.T, arguments.N, arguments.K, arguments.btX, arguments.btY, arguments.btZ);
+
+    if (arguments.debug) {
+        cout << "Readed parameters: " << endl;
+        solver.PrintParams();
+        cout << endl;
+    }
+
+    solver.Solve(arguments.steps);
 }
