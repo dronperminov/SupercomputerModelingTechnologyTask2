@@ -3,10 +3,24 @@
 #include <cstring>
 
 // тип граничных условий
-enum class BorderConditionType {
+enum class BoundaryConditionType {
     FirstKind, // первого рода
-    Periodic // периодические
+    PeriodicAnalytical, // аналитические периодические
+    PeriodicNumerical // численные периодические
 };
+
+std::ostream& operator<<(std::ostream& os, const BoundaryConditionType type) {
+    if (type == BoundaryConditionType::FirstKind)
+        return os << "first-kind";
+
+    if (type == BoundaryConditionType::PeriodicAnalytical)
+        return os << "periodic-analytical";
+
+    if (type == BoundaryConditionType::PeriodicNumerical)
+        return os << "periodic-numerical";
+
+    return os;
+}
 
 struct Arguments {
     double Lx; // длина параллелепипеда по x
@@ -18,15 +32,15 @@ struct Arguments {
     int K; // количество точек временной сетки
     int steps; // количество шагов по времени
 
-    BorderConditionType btX; // граничные условия первого рода по x
-    BorderConditionType btY; // периодические граничные условия по y
-    BorderConditionType btZ; // граничные условия первого рода по z
+    BoundaryConditionType btX; // граничные условия первого рода по x
+    BoundaryConditionType btY; // периодические граничные условия по y
+    BoundaryConditionType btZ; // граничные условия первого рода по z
 
     bool debug; // режим отладки
 };
 
 class ArgumentParser {
-    BorderConditionType GetType(const char *arg) const; // получение типа граничного условия
+    BoundaryConditionType GetType(const char *arg) const; // получение типа граничного условия
 public:
     void Help() const; // вывод сообщения помощи
 
@@ -34,12 +48,15 @@ public:
 };
 
 // получение типа граничного условия
-BorderConditionType ArgumentParser::GetType(const char *arg) const {
+BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
     if (!strcmp(arg, "first") || !strcmp(arg, "first-kind") || !strcmp(arg, "f"))
-        return BorderConditionType::FirstKind;
+        return BoundaryConditionType::FirstKind;
 
-    if (!strcmp(arg, "periodic") || !strcmp(arg, "p"))
-        return BorderConditionType::Periodic;
+    if (!strcmp(arg, "periodic-analytical") || !strcmp(arg, "pa"))
+        return BoundaryConditionType::PeriodicAnalytical;
+
+    if (!strcmp(arg, "periodic-numerical") || !strcmp(arg, "pn"))
+        return BoundaryConditionType::PeriodicNumerical;
 
     std::cout << "Unknown border condition type '" << arg << "'" << std::endl;
     throw "Unknown border condition type";
@@ -57,9 +74,14 @@ void ArgumentParser::Help() const {
     std::cout << "-K     - number of points in time grid (default = 100)" << std::endl;
     std::cout << "-steps - number of steps for solving (default = 20)" << std::endl;
     std::cout << "-btx   - type of border condition along the X axis (default = first-kind)" << std::endl;
-    std::cout << "-bty   - type of border condition along the Y axis (default = periodic)" << std::endl;
+    std::cout << "-bty   - type of border condition along the Y axis (default = periodic-analytical)" << std::endl;
     std::cout << "-btz   - type of border condition along the Z axis (default = first-kind)" << std::endl;
-    std::cout << "-d     - debug mode (default = non used)" << std::endl;
+    std::cout << "-d     - debug mode (default = non used)" << std::endl << std::endl;
+
+    std::cout << "Boundary condition types:" << std::endl;
+    std::cout << "* first-kind (f)            - homogeneous boundary conditions of the first kind" << std::endl;
+    std::cout << "* periodic-analytical (pa)  - analytic periodic boundary conditions" << std::endl;
+    std::cout << "* periodic-numerical (pn)   - numerical periodic boundary conditions" << std::endl;
 }
 
 Arguments ArgumentParser::Parse(int argc, char **argv) {
@@ -74,9 +96,9 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
     arguments.K = 100;
     arguments.steps = 20;
 
-    arguments.btX = BorderConditionType::FirstKind;
-    arguments.btY = BorderConditionType::Periodic;
-    arguments.btZ = BorderConditionType::FirstKind;
+    arguments.btX = BoundaryConditionType::FirstKind;
+    arguments.btY = BoundaryConditionType::PeriodicAnalytical;
+    arguments.btZ = BoundaryConditionType::FirstKind;
 
     arguments.debug = false;
 

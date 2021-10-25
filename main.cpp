@@ -7,7 +7,7 @@ using namespace std;
 class HyperbolicEquationSolver {
     double Lx, Ly, Lz; // параметры параллелепипеда
     double T; // время
-    BorderConditionType btX, btY, btZ; // граничные условия
+    BoundaryConditionType btX, btY, btZ; // граничные условия
     int N; // размер пространственной сетки
     int K; // размер временной сетки
     double hx, hy, hz; // шаги пространственной сетки
@@ -16,13 +16,13 @@ class HyperbolicEquationSolver {
     double ***InitLayer(int ni, int nj, int nk) const; // выделение памяти под слой
     void FreeLayer(double ***layer, int ni, int nj, int nk) const; // освобождение памяти из-под слоя
 
-    void FillBorderValues(double ***u, double t) const; // заполнение граничными значениями
+    void FillBoundaryValues(double ***u, double t, bool isInitial) const; // заполнение граничными значениями
     void FillInitialValues(double ***u0, double ***u1) const; // заполнение начальных условий
 
     double LaplaceOperator(double ***u, int i, int j, int k) const; // оператор Лапласа
     double EvaluateError(double ***u, double t) const; // оценка погрешности на слое
 public:
-    HyperbolicEquationSolver(double Lx, double Ly, double Lz, double T, int N, int K, BorderConditionType btX, BorderConditionType btY, BorderConditionType btZ);
+    HyperbolicEquationSolver(double Lx, double Ly, double Lz, double T, int N, int K, BoundaryConditionType btX, BoundaryConditionType btY, BoundaryConditionType btZ);
 
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
@@ -31,7 +31,7 @@ public:
     void PrintParams() const; // вывод параметров
 };
 
-HyperbolicEquationSolver::HyperbolicEquationSolver(double Lx, double Ly, double Lz, double T, int N, int K, BorderConditionType btX, BorderConditionType btY, BorderConditionType btZ) {
+HyperbolicEquationSolver::HyperbolicEquationSolver(double Lx, double Ly, double Lz, double T, int N, int K, BoundaryConditionType btX, BoundaryConditionType btY, BoundaryConditionType btZ) {
     this->Lx = Lx;
     this->Ly = Ly;
     this->Lz = Lz;
@@ -98,35 +98,47 @@ double HyperbolicEquationSolver::LaplaceOperator(double ***u, int i, int j, int 
 }
 
 // заполнение граничными значениями
-void HyperbolicEquationSolver::FillBorderValues(double ***u, double t) const {
+void HyperbolicEquationSolver::FillBoundaryValues(double ***u, double t, bool isInitial) const {
     #pragma omp parallel for collapse(2)
     for (int i = 0; i <= N; i++) {
         for (int j = 0; j <= N; j++) {
-            if (btX == BorderConditionType::FirstKind) {
+            if (btX == BoundaryConditionType::FirstKind) {
                 u[0][i][j] = 0;
                 u[N][i][j] = 0;
             }
-            else if (btX == BorderConditionType::Periodic) {
+            else if (btX == BoundaryConditionType::PeriodicAnalytical || (isInitial && btX == BoundaryConditionType::PeriodicNumerical)) {
                 u[0][i][j] = AnalyticalSolve(0, i * hy, j * hz, t);
                 u[N][i][j] = AnalyticalSolve(Lx, i * hy, j * hz, t);
             }
+            else if (btX == BoundaryConditionType::PeriodicNumerical) {
+                u[0][i][j] = (u[1][i][j] + u[N - 1][i][j]) / 2;
+                u[N][i][j] = (u[1][i][j] + u[N - 1][i][j]) / 2;
+            }
 
-            if (btY == BorderConditionType::FirstKind) {
+            if (btY == BoundaryConditionType::FirstKind) {
                 u[i][0][j] = 0;
                 u[i][N][j] = 0;
             }
-            else if (btY == BorderConditionType::Periodic) {
+            else if (btY == BoundaryConditionType::PeriodicAnalytical || (isInitial && btY == BoundaryConditionType::PeriodicNumerical)) {
                 u[i][0][j] = AnalyticalSolve(i * hx, 0, j * hz, t);
                 u[i][N][j] = AnalyticalSolve(i * hx, Ly, j * hz, t);
             }
+            else if (btY == BoundaryConditionType::PeriodicNumerical) {
+                u[i][0][j] = (u[i][1][j] + u[i][N - 1][j]) / 2;
+                u[i][N][j] = (u[i][1][j] + u[i][N - 1][j]) / 2;
+            }
 
-            if (btZ == BorderConditionType::FirstKind) {
+            if (btZ == BoundaryConditionType::FirstKind) {
                 u[i][j][0] = 0;
                 u[i][j][N] = 0;
             }
-            else if (btZ == BorderConditionType::Periodic) {
+            else if (btZ == BoundaryConditionType::PeriodicAnalytical || (isInitial && btZ == BoundaryConditionType::PeriodicNumerical)) {
                 u[i][j][0] = AnalyticalSolve(i * hx, j * hy, 0, t);
                 u[i][j][N] = AnalyticalSolve(i * hx, j * hy, Lz, t);
+            }
+            else if (btZ == BoundaryConditionType::PeriodicNumerical) {
+                u[i][j][0] = (u[i][j][1] + u[i][j][N - 1]) / 2;
+                u[i][j][N] = (u[i][j][1] + u[i][j][N - 1]) / 2;
             }
         }
     }
@@ -134,8 +146,8 @@ void HyperbolicEquationSolver::FillBorderValues(double ***u, double t) const {
 
 // заполнение начальных условий
 void HyperbolicEquationSolver::FillInitialValues(double ***u0, double ***u1) const {
-    FillBorderValues(u0, 0);
-    FillBorderValues(u1, tau);
+    FillBoundaryValues(u0, 0, true);
+    FillBoundaryValues(u1, tau, true);
     
     #pragma omp parallel for collapse(3)
     for (int i = 1; i < N; i++)
@@ -143,6 +155,7 @@ void HyperbolicEquationSolver::FillInitialValues(double ***u0, double ***u1) con
             for (int k = 1; k < N; k++)
                 u0[i][j][k] = Phi(i * hx, j * hy, k * hz);
 
+    #pragma omp parallel for collapse(3)
     for (int i = 1; i < N; i++)
         for (int j = 1; j < N; j++)
             for (int k = 1; k < N; k++)
@@ -175,13 +188,13 @@ void HyperbolicEquationSolver::Solve(int maxSteps) {
     cout << "Layer 1 max error: " << EvaluateError(u[1], tau) << endl;
 
     for (int step = 2; step <= maxSteps; step++) {
-        FillBorderValues(u[step], step * tau); // TODO: периодические граничные условия на шаге > 1 считаются иначе?
-    
         #pragma omp parallel for collapse(3)
         for (int i = 1; i < N; i++)
             for (int j = 1; j < N; j++)
                 for (int k = 1; k < N; k++)
                     u[step][i][j][k] = 2 * u[step - 1][i][j][k] - u[step - 2][i][j][k] + tau * tau * LaplaceOperator(u[step - 1], i, j, k);
+
+        FillBoundaryValues(u[step], step * tau, false);
 
         cout << "Layer " << step << " max error: " << EvaluateError(u[step], step * tau) << endl;
     }
@@ -207,9 +220,9 @@ void HyperbolicEquationSolver::PrintParams() const {
     cout << "z_i = i*" << hz << ", i = 0..." << N << endl;
     cout << "t_i = i*" << tau << ", i = 0..." << K << endl << endl;
 
-    cout << "Type of border condition along axis X: " << (btX == BorderConditionType::FirstKind ? "first kind" : "periodic") << endl;
-    cout << "Type of border condition along axis Y: " << (btY == BorderConditionType::FirstKind ? "first kind" : "periodic") << endl;
-    cout << "Type of border condition along axis Z: " << (btZ == BorderConditionType::FirstKind ? "first kind" : "periodic") << endl;
+    cout << "Type of boundary condition along axis X: " << btX << endl;
+    cout << "Type of boundary condition along axis Y: " << btY << endl;
+    cout << "Type of boundary condition along axis Z: " << btZ << endl;
 }
 
 int main(int argc, char **argv) {
@@ -219,7 +232,6 @@ int main(int argc, char **argv) {
         parser.Help();
         return 0;
     }
-
 
     Arguments arguments;
 
