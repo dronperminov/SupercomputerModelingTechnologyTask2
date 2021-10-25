@@ -1,40 +1,17 @@
 #pragma once
 
 #include <cstring>
-
-// тип граничных условий
-enum class BoundaryConditionType {
-    FirstKind, // первого рода
-    PeriodicAnalytical, // аналитические периодические
-    PeriodicNumerical // численные периодические
-};
-
-std::ostream& operator<<(std::ostream& os, const BoundaryConditionType type) {
-    if (type == BoundaryConditionType::FirstKind)
-        return os << "first-kind";
-
-    if (type == BoundaryConditionType::PeriodicAnalytical)
-        return os << "periodic-analytical";
-
-    if (type == BoundaryConditionType::PeriodicNumerical)
-        return os << "periodic-numerical";
-
-    return os;
-}
+#include "Entities.h"
 
 struct Arguments {
-    double Lx; // длина параллелепипеда по x
-    double Ly; // длина параллелепипеда по y
-    double Lz; // длина параллелепипеда по z
+    VolumeSize L; // размер параллелепипела
     double T; // итоговое время
 
     int N; // количество точек пространственной сетки
     int K; // количество точек временной сетки
     int steps; // количество шагов по времени
 
-    BoundaryConditionType btX; // граничные условия первого рода по x
-    BoundaryConditionType btY; // периодические граничные условия по y
-    BoundaryConditionType btZ; // граничные условия первого рода по z
+    BoundaryConditionTypes bt; // граничные условия
 
     bool debug; // режим отладки
     char *jsonPath; // путь для сохранения файла с точками
@@ -78,7 +55,7 @@ void ArgumentParser::Help() const {
     std::cout << "-K     - number of points in time grid (default = 100)" << std::endl;
     std::cout << "-steps - number of steps for solving (default = 20)" << std::endl;
     std::cout << "-btx   - type of border condition along the X axis (default = first-kind)" << std::endl;
-    std::cout << "-bty   - type of border condition along the Y axis (default = periodic-analytical)" << std::endl;
+    std::cout << "-bty   - type of border condition along the Y axis (default = periodic-numerical)" << std::endl;
     std::cout << "-btz   - type of border condition along the Z axis (default = first-kind)" << std::endl;
     std::cout << "-json  - path to json file for saving last calculated layer (default = non used)" << std::endl;
     std::cout << std::endl;
@@ -91,31 +68,31 @@ void ArgumentParser::Help() const {
 Arguments ArgumentParser::Parse(int argc, char **argv) {
     Arguments arguments;
 
-    arguments.Lx = 1;
-    arguments.Ly = 1;
-    arguments.Lz = 1;
+    arguments.L.x = 1;
+    arguments.L.y = 1;
+    arguments.L.z = 1;
     arguments.T = 1;
 
     arguments.N = 40;
     arguments.K = 100;
     arguments.steps = 20;
 
-    arguments.btX = BoundaryConditionType::FirstKind;
-    arguments.btY = BoundaryConditionType::PeriodicAnalytical;
-    arguments.btZ = BoundaryConditionType::FirstKind;
+    arguments.bt.x = BoundaryConditionType::FirstKind;
+    arguments.bt.y = BoundaryConditionType::PeriodicNumerical;
+    arguments.bt.z = BoundaryConditionType::FirstKind;
 
     arguments.debug = false;
     arguments.jsonPath = NULL;
 
     for (int i = 1; i < argc; i += 2) {
         if (!strcmp(argv[i], "-Lx")) {
-            arguments.Lx = atof(argv[i + 1]);
+            arguments.L.x = atof(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-Ly")) {
-            arguments.Ly = atof(argv[i + 1]);
+            arguments.L.y = atof(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-Lz")) {
-            arguments.Lz = atof(argv[i + 1]);
+            arguments.L.z = atof(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-T")) {
             arguments.T = atof(argv[i + 1]);
@@ -130,13 +107,13 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
             arguments.steps = atoi(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-btx")) {
-            arguments.btX = GetType(argv[i + 1]);
+            arguments.bt.x = GetType(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-bty")) {
-            arguments.btY = GetType(argv[i + 1]);
+            arguments.bt.y = GetType(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-btz")) {
-            arguments.btZ = GetType(argv[i + 1]);
+            arguments.bt.z = GetType(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-json")) {
             arguments.jsonPath = argv[i + 1];

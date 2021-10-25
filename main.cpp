@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
         return -1;
     }
 
-    HyperbolicEquationSolver solver(arguments.Lx, arguments.Ly, arguments.Lz, arguments.T, arguments.N, arguments.K, arguments.btX, arguments.btY, arguments.btZ);
+    HyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt);
 
     if (arguments.debug) {
         cout << "Readed parameters: " << endl;
