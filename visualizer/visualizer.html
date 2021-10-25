@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Визуализатор сеточного решения</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <div class="visualizer">
+        <div class="controls">
+            <label class="upload">Загрузить файл
+                <input id="input" type="file" accept=".json">
+            </label>
+            <br><span id="input-span">Файл не выбран</span>
+            <br><br>
+            <label style="display: none">Шаг сетки:
+                <input id="step" type="number" min="1" max="100" value="4">
+            </label>
+            <div id="info"></div>
+        </div>
+
+        <div class="view" id="plot"></div>
+    </div>
+
+    <script src="plotly.min.js"></script>
+    <script src="visualizer.js"></script>
+    <script>
+        let visualizer = new Visualizer()
+    </script>
+</body>
+</html>
