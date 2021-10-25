@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include "ArgumentParser.hpp"
 
@@ -15,6 +16,7 @@ class HyperbolicEquationSolver {
 
     double ***InitLayer(int ni, int nj, int nk) const; // выделение памяти под слой
     void FreeLayer(double ***layer, int ni, int nj, int nk) const; // освобождение памяти из-под слоя
+    void SaveLayer(double ***layer, double t, const char *filename) const; // сохранение слоя
 
     void FillBoundaryValues(double ***u, double t, bool isInitial) const; // заполнение граничными значениями
     void FillInitialValues(double ***u0, double ***u1) const; // заполнение начальных условий
@@ -27,7 +29,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20); // решение
+    void Solve(int maxSteps = 20, const char *jsonPath = NULL); // решение
     void PrintParams() const; // вывод параметров
 };
 
@@ -86,6 +88,42 @@ void HyperbolicEquationSolver::FreeLayer(double ***layer, int ni, int nj, int nk
     }
 
     delete[] layer;
+}
+
+// сохранение слоя
+void HyperbolicEquationSolver::SaveLayer(double ***layer, double t, const char *filename) const {
+    ofstream f(filename);
+
+    f << "{" << endl;
+    f << "    \"Lx\": " << Lx << ", " << endl;
+    f << "    \"Ly\": " << Ly << ", " << endl;
+    f << "    \"Lz\": " << Lz << ", " << endl;
+    f << "    \"N\": " << N << ", " << endl;
+    f << "    \"t\": " << t << ", " << endl;
+    f << "    \"points\": [" << endl;
+
+    bool wasPrinted = false;
+
+    for (int i = 0; i <= N; i++) {
+        for (int j = 0; j <= N; j++) {
+            for (int k = 0; k <= N; k++) {
+                if (wasPrinted) {
+                    f << ", " << endl;
+                }
+                else {
+                    wasPrinted = true;
+                }
+
+                f << "        [" << (hx * i) << ", " << (hy * j) << ", " << (hz * k) << ", " << layer[i][j][k] << "]";
+            }
+        }
+    }
+
+    f << endl;
+    f << "    ]" << endl;
+    f << "}" << endl;
+
+    f.close();
 }
 
 // оператор Лапласа
@@ -170,13 +208,13 @@ double HyperbolicEquationSolver::EvaluateError(double ***u, double t) const {
     for (int i = 0; i <= N; i++)
         for (int j = 0; j <= N; j++)
             for (int k = 0; k <= N; k++)
-                error = max(error, u[i][j][k] - AnalyticalSolve(i * hx, j * hy, k * hz, t));
+                error = max(error, fabs(u[i][j][k] - AnalyticalSolve(i * hx, j * hy, k * hz, t)));
 
     return error;
 }
 
 // решение
-void HyperbolicEquationSolver::Solve(int maxSteps) {
+void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
     double ****u = new double***[maxSteps + 1];
 
     for (int i = 0; i <= maxSteps; i++)
@@ -197,6 +235,10 @@ void HyperbolicEquationSolver::Solve(int maxSteps) {
         FillBoundaryValues(u[step], step * tau, false);
 
         cout << "Layer " << step << " max error: " << EvaluateError(u[step], step * tau) << endl;
+    }
+
+    if (jsonPath) {
+        SaveLayer(u[maxSteps], maxSteps * tau, jsonPath);
     }
 
     for (int i = 0; i <= maxSteps; i++)
@@ -228,7 +270,7 @@ void HyperbolicEquationSolver::PrintParams() const {
 int main(int argc, char **argv) {
     ArgumentParser parser;
 
-    if (argc == 2 && !strcmp(argv[1], "--help")) {
+    if (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))) {
         parser.Help();
         return 0;
     }
@@ -250,5 +292,5 @@ int main(int argc, char **argv) {
         cout << endl;
     }
 
-    solver.Solve(arguments.steps);
+    solver.Solve(arguments.steps, arguments.jsonPath);
 }

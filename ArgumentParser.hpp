@@ -37,6 +37,7 @@ struct Arguments {
     BoundaryConditionType btZ; // граничные условия первого рода по z
 
     bool debug; // режим отладки
+    char *jsonPath; // путь для сохранения файла с точками
 };
 
 class ArgumentParser {
@@ -64,8 +65,11 @@ BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
 
 // вывод сообщения помощи
 void ArgumentParser::Help() const {
-    std::cout << "Usage: ./solve [-Lx Lx] [-Ly Ly] [-Lz Lz] [-T T] [-N N] [-K K] [-steps steps] [-btx border_type] [-bty border_type] [-btz border_type] [-d]" << std::endl;
+    std::cout << "Usage: ./solve [-d] [-Lx Lx] [-Ly Ly] [-Lz Lz] [-T T] [-N N] [-K K] [-steps steps]" << std::endl;
+    std::cout << "               [-btx border_type] [-bty border_type] [-btz border_type] [-json path]" << std::endl << std::endl;
+
     std::cout << "Arguments:" << std::endl;
+    std::cout << "-d     - debug mode (default = non used)" << std::endl;
     std::cout << "-Lx    - the length of the parallelepiped along the X axis (default = 1)" << std::endl;
     std::cout << "-Ly    - the length of the parallelepiped along the Y axis (default = 1)" << std::endl;
     std::cout << "-Lz    - the length of the parallelepiped along the Z axis (default = 1)" << std::endl;
@@ -76,8 +80,8 @@ void ArgumentParser::Help() const {
     std::cout << "-btx   - type of border condition along the X axis (default = first-kind)" << std::endl;
     std::cout << "-bty   - type of border condition along the Y axis (default = periodic-analytical)" << std::endl;
     std::cout << "-btz   - type of border condition along the Z axis (default = first-kind)" << std::endl;
-    std::cout << "-d     - debug mode (default = non used)" << std::endl << std::endl;
-
+    std::cout << "-json  - path to json file for saving last calculated layer (default = non used)" << std::endl;
+    std::cout << std::endl;
     std::cout << "Boundary condition types:" << std::endl;
     std::cout << "* first-kind (f)            - homogeneous boundary conditions of the first kind" << std::endl;
     std::cout << "* periodic-analytical (pa)  - analytic periodic boundary conditions" << std::endl;
@@ -101,6 +105,7 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
     arguments.btZ = BoundaryConditionType::FirstKind;
 
     arguments.debug = false;
+    arguments.jsonPath = NULL;
 
     for (int i = 1; i < argc; i += 2) {
         if (!strcmp(argv[i], "-Lx")) {
@@ -132,6 +137,9 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
         }
         else if (!strcmp(argv[i], "-btz")) {
             arguments.btZ = GetType(argv[i + 1]);
+        }
+        else if (!strcmp(argv[i], "-json")) {
+            arguments.jsonPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
             arguments.debug = true;
