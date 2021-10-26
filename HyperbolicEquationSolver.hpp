@@ -21,6 +21,7 @@ class HyperbolicEquationSolver {
 
     void FillBoundaryValues(double *u, double t, bool isInitial) const; // заполнение граничными значениями
     void FillInitialValues(double *u0, double *u1) const; // заполнение начальных условий
+    void FillAnalyticalValues(double *u, double t) const; // заполнение аналитических значений
 
     double LaplaceOperator(double *u, int i, int j, int k) const; // оператор Лапласа
     double EvaluateError(double *u, double t) const; // оценка погрешности на слое
@@ -30,7 +31,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20, const char *jsonPath = NULL); // решение
+    void Solve(int maxSteps = 20, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
     void PrintParams() const; // вывод параметров
 };
 
@@ -177,6 +178,15 @@ void HyperbolicEquationSolver::FillInitialValues(double *u0, double *u1) const {
                 u1[Index(i, j, k)] = u0[Index(i, j, k)] + tau * tau / 2 * LaplaceOperator(u0, i, j, k);
 }
 
+// заполнение аналитических значений
+void HyperbolicEquationSolver::FillAnalyticalValues(double *u, double t) const {
+    #pragma omp parallel for collapse(3)
+    for (int i = 0; i <= N; i++)
+        for (int j = 0; j <= N; j++)
+            for (int k = 0; k <= N; k++)
+                u[Index(i, j, k)] = AnalyticalSolve(i * hx, j * hy, k * hz, t);
+}
+
 // оценка погрешности на слое
 double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
     double error = 0;
@@ -191,7 +201,7 @@ double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
 }
 
 // решение
-void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
+void HyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath, const char *analyticalPath) {
     double **u = new double*[3];
     u[0] = new double[layerSize];
     u[1] = new double[layerSize];
@@ -214,8 +224,13 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
         std::cout << "Layer " << step << " max error: " << EvaluateError(u[step % 3], step * tau) << std::endl;
     }
 
-    if (jsonPath) {
-        SaveLayer(u[maxSteps % 3], maxSteps * tau, jsonPath);
+    if (numericalPath) {
+        SaveLayer(u[maxSteps % 3], maxSteps * tau, numericalPath);
+    }
+
+    if (analyticalPath) {
+        FillAnalyticalValues(u[0], maxSteps * tau);
+        SaveLayer(u[0], maxSteps * tau, analyticalPath);
     }
 
     delete[] u[0];

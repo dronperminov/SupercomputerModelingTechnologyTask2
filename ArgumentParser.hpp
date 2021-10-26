@@ -14,7 +14,8 @@ struct Arguments {
     BoundaryConditionTypes bt; // граничные условия
 
     bool debug; // режим отладки
-    char *jsonPath; // путь для сохранения файла с точками
+    char *numericalPath; // путь для сохранения файла решения с точками
+    char *analyticalPath; // путь для сохранения файла аналитического решения с точками
 };
 
 class ArgumentParser {
@@ -43,7 +44,7 @@ BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
 // вывод сообщения помощи
 void ArgumentParser::Help() const {
     std::cout << "Usage: ./solve [-d] [-Lx Lx] [-Ly Ly] [-Lz Lz] [-T T] [-N N] [-K K] [-steps steps]" << std::endl;
-    std::cout << "               [-btx border_type] [-bty border_type] [-btz border_type] [-json path]" << std::endl << std::endl;
+    std::cout << "               [-btx border_type] [-bty border_type] [-btz border_type] [-oa path] [-on path]" << std::endl << std::endl;
 
     std::cout << "Arguments:" << std::endl;
     std::cout << "-d     - debug mode (default = non used)" << std::endl;
@@ -57,7 +58,8 @@ void ArgumentParser::Help() const {
     std::cout << "-btx   - type of border condition along the X axis (default = first-kind)" << std::endl;
     std::cout << "-bty   - type of border condition along the Y axis (default = periodic-numerical)" << std::endl;
     std::cout << "-btz   - type of border condition along the Z axis (default = first-kind)" << std::endl;
-    std::cout << "-json  - path to json file for saving last calculated layer (default = non used)" << std::endl;
+    std::cout << "-on    - path to json file for saving numerical solve (default = non used)" << std::endl;
+    std::cout << "-oa    - path to json file for saving analytical solve (default = non used)" << std::endl;
     std::cout << std::endl;
     std::cout << "Boundary condition types:" << std::endl;
     std::cout << "* first-kind (f)            - homogeneous boundary conditions of the first kind" << std::endl;
@@ -82,7 +84,8 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
     arguments.bt.z = BoundaryConditionType::FirstKind;
 
     arguments.debug = false;
-    arguments.jsonPath = NULL;
+    arguments.numericalPath = NULL;
+    arguments.analyticalPath = NULL;
 
     for (int i = 1; i < argc; i += 2) {
         if (!strcmp(argv[i], "-Lx")) {
@@ -115,8 +118,11 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
         else if (!strcmp(argv[i], "-btz")) {
             arguments.bt.z = GetType(argv[i + 1]);
         }
-        else if (!strcmp(argv[i], "-json")) {
-            arguments.jsonPath = argv[i + 1];
+        else if (!strcmp(argv[i], "-on")) {
+            arguments.numericalPath = argv[i + 1];
+        }
+        else if (!strcmp(argv[i], "-oa")) {
+            arguments.analyticalPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
             arguments.debug = true;

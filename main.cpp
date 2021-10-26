@@ -31,5 +31,5 @@ int main(int argc, char **argv) {
         cout << endl;
     }
 
-    solver.Solve(arguments.steps, arguments.jsonPath);
+    solver.Solve(arguments.steps, arguments.numericalPath, arguments.analyticalPath);
 }
