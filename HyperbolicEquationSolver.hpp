@@ -77,7 +77,7 @@ void HyperbolicEquationSolver::SaveLayer(double *layer, double t, const char *fi
     f << "    \"Lz\": " << L.z << ", " << std::endl;
     f << "    \"N\": " << N << ", " << std::endl;
     f << "    \"t\": " << t << ", " << std::endl;
-    f << "    \"points\": [" << std::endl;
+    f << "    \"u\": [" << std::endl;
 
     bool wasPrinted = false;
 
@@ -91,7 +91,7 @@ void HyperbolicEquationSolver::SaveLayer(double *layer, double t, const char *fi
                     wasPrinted = true;
                 }
 
-                f << "        [" << (hx * i) << ", " << (hy * j) << ", " << (hz * k) << ", " << layer[Index(i, j, k)] << "]";
+                f << "    " << layer[Index(i, j, k)];
             }
         }
     }
