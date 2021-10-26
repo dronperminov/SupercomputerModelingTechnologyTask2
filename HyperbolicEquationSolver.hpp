@@ -14,15 +14,16 @@ class HyperbolicEquationSolver {
     double hx, hy, hz; // шаги пространственной сетки
     double tau; // шаг временной сетки
 
-    double ***InitLayer(int ni, int nj, int nk) const; // выделение памяти под слой
-    void FreeLayer(double ***layer, int ni, int nj, int nk) const; // освобождение памяти из-под слоя
-    void SaveLayer(double ***layer, double t, const char *filename) const; // сохранение слоя
+    int layerSize; // размер слоя
 
-    void FillBoundaryValues(double ***u, double t, bool isInitial) const; // заполнение граничными значениями
-    void FillInitialValues(double ***u0, double ***u1) const; // заполнение начальных условий
+    int Index(int i, int j, int k) const; // одномерная индексация
+    void SaveLayer(double *layer, double t, const char *filename) const; // сохранение слоя
 
-    double LaplaceOperator(double ***u, int i, int j, int k) const; // оператор Лапласа
-    double EvaluateError(double ***u, double t) const; // оценка погрешности на слое
+    void FillBoundaryValues(double *u, double t, bool isInitial) const; // заполнение граничными значениями
+    void FillInitialValues(double *u0, double *u1) const; // заполнение начальных условий
+
+    double LaplaceOperator(double *u, int i, int j, int k) const; // оператор Лапласа
+    double EvaluateError(double *u, double t) const; // оценка погрешности на слое
 public:
     HyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt);
 
@@ -46,6 +47,7 @@ HyperbolicEquationSolver::HyperbolicEquationSolver(VolumeSize L, double T, int N
     this->tau = T / K;
 
     this->bt = bt;
+    this->layerSize = (N + 1) * (N + 1) * (N + 1);
 }
 
 // аналитическое решение
@@ -60,34 +62,13 @@ double HyperbolicEquationSolver::Phi(double x, double y, double z) const {
     return AnalyticalSolve(x, y, z, 0);
 }
 
-// выделение памяти под слой
-double*** HyperbolicEquationSolver::InitLayer(int ni, int nj, int nk) const {
-    double ***layer = new double**[ni];
-
-    for (int i = 0; i < ni; i++) {
-        layer[i] = new double*[nj];
-
-        for (int j = 0; j < nj; j++)
-            layer[i][j] = new double[nk];
-    }
-
-    return layer;
-}
-
-// освобождение памяти из-под слоя
-void HyperbolicEquationSolver::FreeLayer(double ***layer, int ni, int nj, int nk) const {
-    for (int i = 0; i < ni; i++) {
-        for (int j = 0; j < nj; j++)
-            delete[] layer[i][j];
-
-        delete[] layer[i];
-    }
-
-    delete[] layer;
+// одномерная индексация
+int HyperbolicEquationSolver::Index(int i, int j, int k) const {
+    return (i * (N + 1) + j) * (N + 1) + k;
 }
 
 // сохранение слоя
-void HyperbolicEquationSolver::SaveLayer(double ***layer, double t, const char *filename) const {
+void HyperbolicEquationSolver::SaveLayer(double *layer, double t, const char *filename) const {
     std::ofstream f(filename);
 
     f << "{" << std::endl;
@@ -110,7 +91,7 @@ void HyperbolicEquationSolver::SaveLayer(double ***layer, double t, const char *
                     wasPrinted = true;
                 }
 
-                f << "        [" << (hx * i) << ", " << (hy * j) << ", " << (hz * k) << ", " << layer[i][j][k] << "]";
+                f << "        [" << (hx * i) << ", " << (hy * j) << ", " << (hz * k) << ", " << layer[Index(i, j, k)] << "]";
             }
         }
     }
@@ -123,63 +104,63 @@ void HyperbolicEquationSolver::SaveLayer(double ***layer, double t, const char *
 }
 
 // оператор Лапласа
-double HyperbolicEquationSolver::LaplaceOperator(double ***u, int i, int j, int k) const {
-    double dx = (u[i - 1][j][k] - 2 * u[i][j][k] + u[i + 1][j][k]) / (hx * hx);
-    double dy = (u[i][j - 1][k] - 2 * u[i][j][k] + u[i][j + 1][k]) / (hy * hy);
-    double dz = (u[i][j][k - 1] - 2 * u[i][j][k] + u[i][j][k + 1]) / (hz * hz);
+double HyperbolicEquationSolver::LaplaceOperator(double *u, int i, int j, int k) const {
+    double dx = (u[Index(i - 1, j, k)] - 2 * u[Index(i, j, k)] + u[Index(i + 1, j, k)]) / (hx * hx);
+    double dy = (u[Index(i, j - 1, k)] - 2 * u[Index(i, j, k)] + u[Index(i, j + 1, k)]) / (hy * hy);
+    double dz = (u[Index(i, j, k - 1)] - 2 * u[Index(i, j, k)] + u[Index(i, j, k + 1)]) / (hz * hz);
 
     return dx + dy + dz;
 }
 
 // заполнение граничными значениями
-void HyperbolicEquationSolver::FillBoundaryValues(double ***u, double t, bool isInitial) const {
+void HyperbolicEquationSolver::FillBoundaryValues(double *u, double t, bool isInitial) const {
     #pragma omp parallel for collapse(2)
     for (int i = 0; i <= N; i++) {
         for (int j = 0; j <= N; j++) {
             if (bt.x == BoundaryConditionType::FirstKind) {
-                u[0][i][j] = 0;
-                u[N][i][j] = 0;
+                u[Index(0, i, j)] = 0;
+                u[Index(N, i, j)] = 0;
             }
             else if (bt.x == BoundaryConditionType::PeriodicAnalytical || (isInitial && bt.x == BoundaryConditionType::PeriodicNumerical)) {
-                u[0][i][j] = AnalyticalSolve(0, i * hy, j * hz, t);
-                u[N][i][j] = AnalyticalSolve(L.x, i * hy, j * hz, t);
+                u[Index(0, i, j)] = AnalyticalSolve(0, i * hy, j * hz, t);
+                u[Index(N, i, j)] = AnalyticalSolve(L.x, i * hy, j * hz, t);
             }
             else if (bt.x == BoundaryConditionType::PeriodicNumerical) {
-                u[0][i][j] = (u[1][i][j] + u[N - 1][i][j]) / 2;
-                u[N][i][j] = (u[1][i][j] + u[N - 1][i][j]) / 2;
+                u[Index(0, i, j)] = (u[Index(1, i, j)] + u[Index(N - 1, i, j)]) / 2;
+                u[Index(N, i, j)] = (u[Index(1, i, j)] + u[Index(N - 1, i, j)]) / 2;
             }
 
             if (bt.y == BoundaryConditionType::FirstKind) {
-                u[i][0][j] = 0;
-                u[i][N][j] = 0;
+                u[Index(i, 0, j)] = 0;
+                u[Index(i, N, j)] = 0;
             }
             else if (bt.y == BoundaryConditionType::PeriodicAnalytical || (isInitial && bt.y == BoundaryConditionType::PeriodicNumerical)) {
-                u[i][0][j] = AnalyticalSolve(i * hx, 0, j * hz, t);
-                u[i][N][j] = AnalyticalSolve(i * hx, L.y, j * hz, t);
+                u[Index(i, 0, j)] = AnalyticalSolve(i * hx, 0, j * hz, t);
+                u[Index(i, N, j)] = AnalyticalSolve(i * hx, L.y, j * hz, t);
             }
             else if (bt.y == BoundaryConditionType::PeriodicNumerical) {
-                u[i][0][j] = (u[i][1][j] + u[i][N - 1][j]) / 2;
-                u[i][N][j] = (u[i][1][j] + u[i][N - 1][j]) / 2;
+                u[Index(i, 0, j)] = (u[Index(i, 1, j)] + u[Index(i, N - 1, j)]) / 2;
+                u[Index(i, N, j)] = (u[Index(i, 1, j)] + u[Index(i, N - 1, j)]) / 2;
             }
 
             if (bt.z == BoundaryConditionType::FirstKind) {
-                u[i][j][0] = 0;
-                u[i][j][N] = 0;
+                u[Index(i, j, 0)] = 0;
+                u[Index(i, j, N)] = 0;
             }
             else if (bt.z == BoundaryConditionType::PeriodicAnalytical || (isInitial && bt.z == BoundaryConditionType::PeriodicNumerical)) {
-                u[i][j][0] = AnalyticalSolve(i * hx, j * hy, 0, t);
-                u[i][j][N] = AnalyticalSolve(i * hx, j * hy, L.z, t);
+                u[Index(i, j, 0)] = AnalyticalSolve(i * hx, j * hy, 0, t);
+                u[Index(i, j, N)] = AnalyticalSolve(i * hx, j * hy, L.z, t);
             }
             else if (bt.z == BoundaryConditionType::PeriodicNumerical) {
-                u[i][j][0] = (u[i][j][1] + u[i][j][N - 1]) / 2;
-                u[i][j][N] = (u[i][j][1] + u[i][j][N - 1]) / 2;
+                u[Index(i, j, 0)] = (u[Index(i, j, 1)] + u[Index(i, j, N - 1)]) / 2;
+                u[Index(i, j, N)] = (u[Index(i, j, 1)] + u[Index(i, j, N - 1)]) / 2;
             }
         }
     }
 }
 
 // заполнение начальных условий
-void HyperbolicEquationSolver::FillInitialValues(double ***u0, double ***u1) const {
+void HyperbolicEquationSolver::FillInitialValues(double *u0, double *u1) const {
     FillBoundaryValues(u0, 0, true);
     FillBoundaryValues(u1, tau, true);
     
@@ -187,34 +168,34 @@ void HyperbolicEquationSolver::FillInitialValues(double ***u0, double ***u1) con
     for (int i = 1; i < N; i++)
         for (int j = 1; j < N; j++)
             for (int k = 1; k < N; k++)
-                u0[i][j][k] = Phi(i * hx, j * hy, k * hz);
+                u0[Index(i, j, k)] = Phi(i * hx, j * hy, k * hz);
 
     #pragma omp parallel for collapse(3)
     for (int i = 1; i < N; i++)
         for (int j = 1; j < N; j++)
             for (int k = 1; k < N; k++)
-                u1[i][j][k] = u0[i][j][k] + tau * tau / 2 * LaplaceOperator(u0, i, j, k);
+                u1[Index(i, j, k)] = u0[Index(i, j, k)] + tau * tau / 2 * LaplaceOperator(u0, i, j, k);
 }
 
 // оценка погрешности на слое
-double HyperbolicEquationSolver::EvaluateError(double ***u, double t) const {
+double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
     double error = 0;
 
     #pragma omp parallel for collapse(3) reduction(max: error)
     for (int i = 0; i <= N; i++)
         for (int j = 0; j <= N; j++)
             for (int k = 0; k <= N; k++)
-                error = std::max(error, fabs(u[i][j][k] - AnalyticalSolve(i * hx, j * hy, k * hz, t)));
+                error = std::max(error, fabs(u[Index(i, j, k)] - AnalyticalSolve(i * hx, j * hy, k * hz, t)));
 
     return error;
 }
 
 // решение
 void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
-    double ****u = new double***[3];
-    u[0] = InitLayer(N + 1, N + 1, N + 1);
-    u[1] = InitLayer(N + 1, N + 1, N + 1);
-    u[2] = InitLayer(N + 1, N + 1, N + 1);
+    double **u = new double*[3];
+    u[0] = new double[layerSize];
+    u[1] = new double[layerSize];
+    u[2] = new double[layerSize];
 
     FillInitialValues(u[0], u[1]); // заполняем начальные условия
 
@@ -226,7 +207,7 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
         for (int i = 1; i < N; i++)
             for (int j = 1; j < N; j++)
                 for (int k = 1; k < N; k++)
-                    u[step % 3][i][j][k] = 2 * u[(step + 2) % 3][i][j][k] - u[(step + 1) % 3][i][j][k] + tau * tau * LaplaceOperator(u[(step + 2) % 3], i, j, k);
+                    u[step % 3][Index(i, j, k)] = 2 * u[(step + 2) % 3][Index(i, j, k)] - u[(step + 1) % 3][Index(i, j, k)] + tau * tau * LaplaceOperator(u[(step + 2) % 3], i, j, k);
 
         FillBoundaryValues(u[step % 3], step * tau, false);
 
@@ -237,9 +218,9 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
         SaveLayer(u[maxSteps % 3], maxSteps * tau, jsonPath);
     }
 
-    for (int i = 0; i < 3; i++)
-        FreeLayer(u[i], N + 1, N + 1, N + 1);
-
+    delete[] u[0];
+    delete[] u[1];
+    delete[] u[2];
     delete[] u;
 }
 
