@@ -7,7 +7,7 @@
 </head>
 <body>
     <div class="visualizer">
-        <div class="controls">
+        <div class="controls split-controls">
             <div class="params">
                 <label>Размер сетки (N):
                     <input id="gridSizeBox" type="number" min="1" max="512" value="40">
@@ -15,7 +15,12 @@
 
                 <br>
                 <label>Кол-во процессов:
-                    <input id="processorsBox" type="number" min="1" max="512" step=1 value="1">
+                    <input id="processorsBox" type="number" min="1" max="512" step=1 value="5">
+                </label>
+
+                <br>
+                <label>Процесс для соседей:
+                    <input id="neighbourBox" type="number" min="0" max="512" step=1 value="0">
                 </label>
             </div>
             <div id="info"></div>

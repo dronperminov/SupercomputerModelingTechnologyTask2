@@ -17,6 +17,10 @@
     text-align: center;
 }
 
+.split-controls {
+    width: 350px;
+}
+
 .upload {
     border: 2px solid #000;
     display: inline-block;

@@ -9,22 +9,59 @@ function Visualizer() {
     this.processorsBox = document.getElementById('processorsBox')
     this.processorsBox.addEventListener('change', () => this.Draw())
 
+    this.neighbourBox = document.getElementById('neighbourBox')
+    this.neighbourBox.addEventListener('change', () => this.Draw())
+
     this.info = document.getElementById('info')
     this.Draw()
 }
 
-Visualizer.prototype.MakeParallelepiped = function(xmin, xmax, ymin, ymax, zmin, zmax) {
-    return {
+Visualizer.prototype.MakeParallelepipedMesh = function(p, isNeighbour = false) {
+    if (isNeighbour) {
+        if (p.xmin == p.xmax) {
+            p.xmax += 0.1
+            p.xmin -= 0.1
+        }
+
+        if (p.ymin == p.ymax) {
+            p.ymax += 0.1
+            p.ymin -= 0.1
+        }
+
+        if (p.zmin == p.zmax) {
+            p.zmax += 0.1
+            p.zmin -= 0.1
+        }
+    }
+
+    let mesh = {
         type: "mesh3d",
-        x: [xmin, xmin, xmax, xmax, xmin, xmin, xmax, xmax],
-        y: [ymin, ymax, ymax, ymin, ymin, ymax, ymax, ymin],
-        z: [zmin, zmin, zmin, zmin, zmax, zmax, zmax, zmax],
+        x: [p.xmin, p.xmin, p.xmax, p.xmax, p.xmin, p.xmin, p.xmax, p.xmax],
+        y: [p.ymin, p.ymax, p.ymax, p.ymin, p.ymin, p.ymax, p.ymax, p.ymin],
+        z: [p.zmin, p.zmin, p.zmin, p.zmin, p.zmax, p.zmax, p.zmax, p.zmax],
         i: [7, 0, 0, 0, 4, 4, 6, 1, 4, 0, 3, 6],
         j: [3, 4, 1, 2, 5, 6, 5, 2, 0, 1, 6, 3],
         k: [0, 7, 2, 3, 6, 7, 1, 6, 5, 5, 7, 2],
-        text:  `[${xmin}, ${xmax}] x [${ymin}, ${ymax}] x [${zmin}, ${zmax}] = ${(xmax - xmin) * (ymax - ymin) * (zmax - zmin)}`,
+        text: p.text,
         opacity: 1,
         flatshading: true
+    }
+
+    if (isNeighbour)
+        mesh.color = '#000'
+
+    return mesh
+}
+
+Visualizer.prototype.MakeParallelepiped = function(xmin, xmax, ymin, ymax, zmin, zmax) {
+    let volume = (xmax - xmin + 1) * (ymax - ymin + 1) * (zmax - zmin + 1)
+
+    return {
+        xmin: xmin, xmax: xmax,
+        ymin: ymin, ymax: ymax,
+        zmin: zmin, zmax: zmax,
+        volume: volume,
+        text: `[${xmin}, ${xmax}] x [${ymin}, ${ymax}] x [${zmin}, ${zmax}] = ${volume}`
     }
 }
 
@@ -76,27 +113,92 @@ Visualizer.prototype.Split = function(xmin, xmax, ymin, ymax, zmin, zmax, size, 
     return splited
 }
 
+// 1 in 2
+Visualizer.prototype.IsInside = function(xmin1, xmax1, ymin1, ymax1, xmin2, xmax2, ymin2, ymax2) {
+    return xmin2 <= xmin1 && xmax1 <= xmax2 && ymin2 <= ymin1 && ymax1 <= ymax2
+}
+
+Visualizer.prototype.GetNeighbour = function(v1, v2) {
+    if (v1.xmin == v2.xmax + 1 || v2.xmin == v1.xmax + 1) {
+        let x = v1.xmin == v2.xmax + 1 ? v1.xmin : v1.xmax
+
+        if (this.IsInside(v1.ymin, v1.ymax, v1.zmin, v1.zmax, v2.ymin, v2.ymax, v2.zmin, v2.zmax))
+            return this.MakeParallelepiped(x, x, v1.ymin, v1.ymax, v1.zmin, v1.zmax)
+
+        if (this.IsInside(v2.ymin, v2.ymax, v2.zmin, v2.zmax, v1.ymin, v1.ymax, v1.zmin, v1.zmax))
+            return this.MakeParallelepiped(x, x, v2.ymin, v2.ymax, v2.zmin, v2.zmax)
+
+        return null
+    }
+
+    if (v1.ymin == v2.ymax + 1 || v2.ymin == v1.ymax + 1) {
+        let y = v1.ymin == v2.ymax + 1 ? v1.ymin : v1.ymax
+
+        if (this.IsInside(v1.xmin, v1.xmax, v1.zmin, v1.zmax, v2.xmin, v2.xmax, v2.zmin, v2.zmax))
+            return this.MakeParallelepiped(v1.xmin, v1.xmax, y, y, v1.zmin, v1.zmax)
+
+        if (this.IsInside(v2.xmin, v2.xmax, v2.zmin, v2.zmax, v1.xmin, v1.xmax, v1.zmin, v1.zmax))
+            return this.MakeParallelepiped(v2.xmin, v2.xmax, y, y, v2.zmin, v2.zmax)
+
+        return null
+    }
+
+    if (v1.zmin == v2.zmax + 1 || v2.zmin == v1.zmax + 1) {
+        let z = v1.zmin == v2.zmax + 1 ? v1.zmin : v1.zmax
+
+        if (this.IsInside(v1.xmin, v1.xmax, v1.ymin, v1.ymax, v2.xmin, v2.xmax, v2.ymin, v2.ymax))
+            return this.MakeParallelepiped(v1.xmin, v1.xmax, v1.ymin, v1.ymax, z, z)
+
+        if (this.IsInside(v2.xmin, v2.xmax, v2.ymin, v2.ymax, v1.xmin, v1.xmax, v1.ymin, v1.ymax))
+            return this.MakeParallelepiped(v2.xmin, v2.xmax, v2.ymin, v2.ymax, z, z)
+
+        return null
+    }
+
+    return null
+}
+
+Visualizer.prototype.FindNeighbours = function(volumes) {
+    let neighbours = []
+
+    for (let i = 0; i < volumes.length; i++) {
+        neighbours[i] = []
+
+        for (let j = 0; j < volumes.length; j++) {
+            if (i == j)
+                continue
+
+            let neighbour = this.GetNeighbour(volumes[i], volumes[j])
+
+            if (neighbour == null)
+                continue
+
+            neighbours[i].push(neighbour)
+        }
+    }
+
+    return neighbours
+}
+
 Visualizer.prototype.Draw = function() {
+    this.neighbourBox.max = P - 1
+
+    if (+this.neighbourBox.value >= P)
+        this.neighbourBox.value = P - 1
+
     let N = +this.gridSizeBox.value
     let P = +this.processorsBox.value
+    let neighbour = +this.neighbourBox.value
 
     this.info.innerHTML = '<b>Параметры:</b><br>'
     this.info.innerHTML += '<b>N</b>: ' + N + '<br>'
     this.info.innerHTML += '<b>P</b>: ' + P + '<br>'
 
-    let meshes = this.Split(0, N, 0, N, 0, N, P, 'x')
+    let volumes = this.Split(0, N, 0, N, 0, N, P, 'x')
+    let neighbours = this.FindNeighbours(volumes)
 
-    for (mesh of meshes) {
-        let xmin = mesh.x[0]
-        let xmax = mesh.x[2]
-
-        let ymin = mesh.y[0]
-        let ymax = mesh.y[1]
-
-        let zmin = mesh.z[0]
-        let zmax = mesh.z[4]
-
-        this.info.innerHTML += `[${xmin}, ${xmax}] x [${ymin}, ${ymax}] x [${zmin}, ${zmax}]<br>`
+    for (let i = 0; i < P; i++) {
+        this.info.innerHTML += `${i}: ${volumes[i].text}<br>`
     }
 
     let layout = {
@@ -105,6 +207,9 @@ Visualizer.prototype.Draw = function() {
         autosize: true,
         margin: { l: 0, r: 0, b: 0, t: 0 }
     }
+
+    let meshes = volumes.map((volume) => this.MakeParallelepipedMesh(volume))
+    meshes = meshes.concat(neighbours[neighbour].map((volume) => this.MakeParallelepipedMesh(volume, true)))
 
     Plotly.newPlot(this.plot, meshes, layout);
 }
