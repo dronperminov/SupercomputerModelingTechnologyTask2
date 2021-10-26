@@ -40,3 +40,12 @@
 #info {
     text-align: left;
 }
+
+.params {
+    text-align: left;
+}
+
+input[type="number"] {
+    width: 50px;
+    margin-bottom: 5px;
+}

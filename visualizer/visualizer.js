@@ -7,28 +7,13 @@ function Visualizer() {
     this.inputSpan = document.getElementById('input-span')
     this.input.addEventListener('change', () => this.ChangeFile())
 
-    this.step = document.getElementById('step')
-    this.step.addEventListener('change', () => this.Draw())
+    this.stepBox = document.getElementById('step')
+    this.stepBox.addEventListener('change', () => this.Draw())
+
+    this.opacityBox = document.getElementById('opacity')
+    this.opacityBox.addEventListener('change', () => this.Draw())
 
     this.info = document.getElementById('info')
-}
-
-Visualizer.prototype.InitWebGL = function() {
-    let gl = null
-
-    try {
-        gl = this.plot.getContext("webgl") || this.plot.getContext("experimental-webgl")
-    }
-    catch (e) {
-
-    }
-
-    if (!gl) {
-        alert("WebGL не поддерживается Вашим браузером...")
-        gl = null
-    }
-
-    return gl
 }
 
 Visualizer.prototype.ChangeFile = function() {
@@ -37,7 +22,8 @@ Visualizer.prototype.ChangeFile = function() {
     let fr = new FileReader()
     fr.onload = (e) => {
         this.data = JSON.parse(e.target.result)
-        this.step.parentNode.style.display = ''
+        this.stepBox.parentNode.style.display = ''
+        this.opacityBox.parentNode.style.display = ''
         this.Draw()
     }
 
@@ -50,15 +36,12 @@ Visualizer.prototype.Plot = function(x, y, z, u, u_min, u_max, size) {
         x: x,
         y: y,
         z: z,
-        text: u.map((v) => 'u: ' + v),
+        text: u.map((ui) => 'u: ' + ui),
         mode: 'markers',
         marker: {
-            color: u.map((ui) => `hsl(${240 - (ui - u_min) / (u_max - u_min) * 240}, 50, 70)`),
+            color: u.map((ui) => `hsl(${((u_max - ui) / (u_max - u_min)) * 240}, 50, 70)`),
             size: size,
-            line: {
-            color: 'rgba(127, 127, 127, 0.5)',
-            width: 0.5},
-            opacity: 1
+            opacity: +this.opacityBox.value
         },
         type: 'scatter3d'
     }
@@ -75,7 +58,7 @@ Visualizer.prototype.Plot = function(x, y, z, u, u_min, u_max, size) {
 
 Visualizer.prototype.Draw = function() {
     let N = this.data['N']
-    let points = this.data['points']
+    let points = this.data['u']
 
     let x = []
     let y = []
@@ -86,22 +69,26 @@ Visualizer.prototype.Draw = function() {
     let u_max = -Infinity
 
     let index = 0;
-    let step = +this.step.value
+    let step = +this.stepBox.value
+
+    let hx = this.data['Lx'] / N
+    let hy = this.data['Ly'] / N
+    let hz = this.data['Lz'] / N
 
     for (let i = 0; i <= N; i++) {
         for (let j = 0; j <= N; j++) {
             for (let k = 0; k <= N; k++) {
-                let point = points[index++]
+                let ui = points[index++]
 
                 if ((i % step == 0 || i == N) && (j % step == 0 || j == N) && (k % step == 0 || k == N)) {
-                    x.push(point[0])
-                    y.push(point[1])
-                    z.push(point[2])
-                    u.push(point[3])
+                    x.push(i * hx)
+                    y.push(j * hy)
+                    z.push(k * hz)
+                    u.push(ui)
                 }
 
-                u_min = Math.min(u_min, point[3])
-                u_max = Math.max(u_max, point[3])
+                u_min = Math.min(u_min, ui)
+                u_max = Math.max(u_max, ui)
             }
         }
     }
@@ -114,5 +101,5 @@ Visualizer.prototype.Draw = function() {
     this.info.innerHTML += '<b>t</b>: ' + this.data['t'] + '<br>'
     this.info.innerHTML += '<b>Число точек</b>: ' + u.length + '<br>'
 
-    this.Plot(x, y, z, u, u_min, u_max, 3*step)
+    this.Plot(x, y, z, u, u_min, u_max, 4*step)
 }
