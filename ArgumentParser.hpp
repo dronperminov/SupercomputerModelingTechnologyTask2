@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <iostream>
 #include "Entities.h"
 
 struct Arguments {
@@ -19,12 +20,106 @@ struct Arguments {
 };
 
 class ArgumentParser {
+    bool IsInteger(const char *s) const;
+    bool IsReal(const char *s) const;
+
+    int ParseInteger(int argc, char **argv, int i, bool onlyPositive = false) const;
+    double ParseReal(int argc, char **argv, int i, bool onlyPositive = false) const;
+
     BoundaryConditionType GetType(const char *arg) const; // получение типа граничного условия
 public:
     void Help() const; // вывод сообщения помощи
 
     Arguments Parse(int argc, char **argv);
 };
+
+bool ArgumentParser::IsInteger(const char *s) const {
+    for (int i = s[0] == '-' ? 1 : 0; s[i]; i++)
+        if (s[i] < '0' || s[i] > '9')
+            return false;
+
+    return true;
+}
+
+bool ArgumentParser::IsReal(const char *s) const {
+    int points = 0;
+    int exponent = -1;
+    int sign = -1;
+
+    for (int i = s[0] == '-' ? 1 : 0; s[i]; i++) {
+        if (s[i] == '.') {
+            points++;
+
+            if (points > 1 || exponent > -1)
+                return false;
+        }
+        else if (s[i] == 'e') {
+            if (exponent > -1)
+                return false;
+
+            exponent = i;
+        }
+        else if (s[i] == '-' || s[i] == '+') {
+            if (exponent != i - 1)
+                return false;
+
+            sign = i;
+        }
+        else if (s[i] < '0' || s[i] > '9') {
+            return false;
+        }
+    }
+
+    if (exponent == -1)
+        return true;
+
+    if (sign == -1)
+        return s[exponent + 1];
+
+    return s[sign + 1];
+}
+
+int ArgumentParser::ParseInteger(int argc, char **argv, int i, bool onlyPositive) const {
+    if (i >= argc - 1) {
+        std::cout << argv[i] << " argument value missed" << std::endl;
+        throw "argument value missed";
+    }
+
+    if (!IsInteger(argv[i + 1])) {
+        std::cout << argv[i] << " argument value is not integer (" << argv[i + 1] << ")" << std::endl;
+        throw "argument value is not integer";
+    }
+
+    int value = atoi(argv[i + 1]);
+
+    if (onlyPositive && value <= 0) {
+        std::cout << argv[i] << " argument value must be positive (" << argv[i + 1] << ")" << std::endl;
+        throw "argument value must be positive";
+    }
+
+    return value;
+}
+
+double ArgumentParser::ParseReal(int argc, char **argv, int i, bool onlyPositive) const {
+    if (i >= argc - 1) {
+        std::cout << argv[i] << " argument value missed" << std::endl;
+        throw "argument value missed";
+    }
+
+    if (!IsReal(argv[i + 1])) {
+        std::cout << argv[i] << " argument value is not real (" << argv[i + 1] << ")" << std::endl;
+        throw "argument value is not real";
+    }
+
+    double value = atof(argv[i + 1]);
+
+    if (onlyPositive && value <= 0) {
+        std::cout << argv[i] << " argument value must be positive (" << argv[i + 1] << ")" << std::endl;
+        throw "argument value must be positive";
+    }
+
+    return value;
+}
 
 // получение типа граничного условия
 BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
@@ -89,25 +184,25 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
 
     for (int i = 1; i < argc; i += 2) {
         if (!strcmp(argv[i], "-Lx")) {
-            arguments.L.x = atof(argv[i + 1]);
+            arguments.L.x = ParseReal(argc, argv, i, true);
         }
         else if (!strcmp(argv[i], "-Ly")) {
-            arguments.L.y = atof(argv[i + 1]);
+            arguments.L.y = ParseReal(argc, argv, i, true);
         }
         else if (!strcmp(argv[i], "-Lz")) {
-            arguments.L.z = atof(argv[i + 1]);
+            arguments.L.z = ParseReal(argc, argv, i, true);
         }
         else if (!strcmp(argv[i], "-T")) {
-            arguments.T = atof(argv[i + 1]);
+            arguments.T = ParseReal(argc, argv, i);
         }
         else if (!strcmp(argv[i], "-N")) {
-            arguments.N = atoi(argv[i + 1]);
+            arguments.N = ParseInteger(argc, argv, i, true);
         }
         else if (!strcmp(argv[i], "-K")) {
-            arguments.K = atoi(argv[i + 1]);
+            arguments.K = ParseInteger(argc, argv, i, true);
         }
         else if (!strcmp(argv[i], "-steps")) {
-            arguments.steps = atoi(argv[i + 1]);
+            arguments.steps = ParseInteger(argc, argv, i, true);
         }
         else if (!strcmp(argv[i], "-btx")) {
             arguments.bt.x = GetType(argv[i + 1]);
@@ -119,9 +214,15 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
             arguments.bt.z = GetType(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-on")) {
+            if (i >= argc - 1)
+                throw "-on argument value missed";
+
             arguments.numericalPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-oa")) {
+            if (i >= argc - 1)
+                throw "-oa argument value missed";
+
             arguments.analyticalPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
