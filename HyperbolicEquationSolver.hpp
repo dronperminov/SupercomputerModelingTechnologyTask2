@@ -211,10 +211,10 @@ double HyperbolicEquationSolver::EvaluateError(double ***u, double t) const {
 
 // решение
 void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
-    double ****u = new double***[maxSteps + 1];
-
-    for (int i = 0; i <= maxSteps; i++)
-        u[i] = InitLayer(N + 1, N + 1, N + 1);
+    double ****u = new double***[3];
+    u[0] = InitLayer(N + 1, N + 1, N + 1);
+    u[1] = InitLayer(N + 1, N + 1, N + 1);
+    u[2] = InitLayer(N + 1, N + 1, N + 1);
 
     FillInitialValues(u[0], u[1]); // заполняем начальные условия
 
@@ -226,18 +226,18 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *jsonPath) {
         for (int i = 1; i < N; i++)
             for (int j = 1; j < N; j++)
                 for (int k = 1; k < N; k++)
-                    u[step][i][j][k] = 2 * u[step - 1][i][j][k] - u[step - 2][i][j][k] + tau * tau * LaplaceOperator(u[step - 1], i, j, k);
+                    u[step % 3][i][j][k] = 2 * u[(step + 2) % 3][i][j][k] - u[(step + 1) % 3][i][j][k] + tau * tau * LaplaceOperator(u[(step + 2) % 3], i, j, k);
 
-        FillBoundaryValues(u[step], step * tau, false);
+        FillBoundaryValues(u[step % 3], step * tau, false);
 
-        std::cout << "Layer " << step << " max error: " << EvaluateError(u[step], step * tau) << std::endl;
+        std::cout << "Layer " << step << " max error: " << EvaluateError(u[step % 3], step * tau) << std::endl;
     }
 
     if (jsonPath) {
-        SaveLayer(u[maxSteps], maxSteps * tau, jsonPath);
+        SaveLayer(u[maxSteps % 3], maxSteps * tau, jsonPath);
     }
 
-    for (int i = 0; i <= maxSteps; i++)
+    for (int i = 0; i < 3; i++)
         FreeLayer(u[i], N + 1, N + 1, N + 1);
 
     delete[] u;
