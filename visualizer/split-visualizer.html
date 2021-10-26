@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Визуализатор разбиения сетки</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <div class="visualizer">
+        <div class="controls">
+            <div class="params">
+                <label>Размер сетки (N):
+                    <input id="gridSizeBox" type="number" min="1" max="512" value="40">
+                </label>
+
+                <br>
+                <label>Кол-во процессов:
+                    <input id="processorsBox" type="number" min="1" max="512" step=1 value="1">
+                </label>
+            </div>
+            <div id="info"></div>
+        </div>
+
+        <div class="view" id="plot"></div>
+    </div>
+
+    <script src="plotly.min.js"></script>
+    <script src="split-visualizer.js"></script>
+    <script>
+        let visualizer = new Visualizer()
+    </script>
+</body>
+</html>
