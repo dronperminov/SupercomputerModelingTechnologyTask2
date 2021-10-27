@@ -48,6 +48,13 @@ int main(int argc, char **argv) {
     }
 
     MPIHyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt, rank, size);
+
+    if (arguments.debug && rank == 0) {
+        cout << "Readed parameters: " << endl;
+        solver.PrintParams();
+        cout << endl;
+    }
+
     solver.Solve(arguments.steps, arguments.numericalPath, arguments.analyticalPath);    
 
     MPI_Finalize();
