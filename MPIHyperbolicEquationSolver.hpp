@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <fstream>
 #include <cassert>
 #include "Entities.h"
 
@@ -42,8 +43,11 @@ class MPIHyperbolicEquationSolver {
 
     int layerSize; // размер слоя
     Volume volume; // рабочий параллелепипед
-    std::map<int, Volume> sendNeighbours; // соседи (процесс -> область соседа)
-    std::map<int, Volume> recvNeighbours; // соседи (процесс -> область соседа)
+
+    std::vector<Volume> sendNeighbours; // соседи на передачу
+    std::vector<Volume> recvNeighbours; // соседи на приём
+    std::vector<int> processNeighbours; // соседи процессы
+    int totalNeighbours; // общее количество точек соседей
 
     Volume MakeVolume(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax) const;
     std::vector<double> PackVolume(const std::vector<double> &u, Volume volume) const;
@@ -70,8 +74,8 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
-    void PrintParams() const; // вывод параметров
+    void Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
+    void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
 MPIHyperbolicEquationSolver::MPIHyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt, int rank, int size) {
@@ -119,18 +123,25 @@ std::vector<double> MPIHyperbolicEquationSolver::PackVolume(const std::vector<do
 
 // отправка/получение соседних значений
 std::vector<std::vector<double>> MPIHyperbolicEquationSolver::SendRecvValues(const std::vector<double> &u) const {
-    std::vector<std::vector<double>> u_recv;
+    std::vector<std::vector<double>> u_recv(processNeighbours.size());
 
-    for (auto it = sendNeighbours.begin(); it != sendNeighbours.end(); it++) {
-        std::vector<double> packed = PackVolume(u, it->second);
-        MPI_Send(packed.data(), packed.size(), MPI_DOUBLE, it->first, 0, MPI_COMM_WORLD);
+    std::vector<MPI_Request> requests(totalNeighbours);
+    std::vector<MPI_Status> statuses(totalNeighbours);
+
+    int index = 0;
+
+    for (auto i = 0; i < processNeighbours.size(); i++) {
+        std::vector<double> packed = PackVolume(u, sendNeighbours[i]);
+        u_recv[i] = std::vector<double>(recvNeighbours[i].size);
+
+        for (int j = 0; j < sendNeighbours[i].size; j++)
+            MPI_Isend(&packed[j], 1, MPI_DOUBLE, processNeighbours[i], 0, MPI_COMM_WORLD, &requests[index++]);
+
+        for (int j = 0; j < recvNeighbours[i].size; j++)
+            MPI_Irecv(&u_recv[i][j], 1, MPI_DOUBLE, processNeighbours[i], 0, MPI_COMM_WORLD, &requests[index++]);
     }
 
-    for (auto it = recvNeighbours.begin(); it != recvNeighbours.end(); it++) {
-        std::vector<double> packed(it->second.size);
-        MPI_Recv(packed.data(), packed.size(), MPI_DOUBLE, it->first, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        u_recv.push_back(packed);
-    }
+    MPI_Waitall(totalNeighbours, requests.data(), statuses.data());
 
     return u_recv;
 }
@@ -239,19 +250,26 @@ bool MPIHyperbolicEquationSolver::GetNeighbours(Volume v1, Volume v2, Volume &ne
 }
 
 void MPIHyperbolicEquationSolver::FillNeighbours(const std::vector<Volume> &volumes) {
-    for (int i = 0; i < size; i++) {
-        Volume neighbour;
+    sendNeighbours.clear();
+    recvNeighbours.clear();
+    processNeighbours.clear();
+    totalNeighbours = 0;
 
+    for (int i = 0; i < size; i++) {
         if (i == rank)
             continue;
 
-        if (GetNeighbours(volume, volumes[i], neighbour)) {
-            sendNeighbours[i] = neighbour;
-        }
+        Volume sendNeighbour;
+        Volume recvNeighbour;
 
-        if (GetNeighbours(volumes[i], volume, neighbour)) {
-            recvNeighbours[i] = neighbour;
-        }
+        if (!GetNeighbours(volume, volumes[i], sendNeighbour))
+            continue;
+
+        GetNeighbours(volumes[i], volume, recvNeighbour);
+        processNeighbours.push_back(i);
+        sendNeighbours.push_back(sendNeighbour);
+        recvNeighbours.push_back(recvNeighbour);
+        totalNeighbours += sendNeighbour.size + recvNeighbour.size; // yes, they are equal
     }
 }
 
@@ -396,18 +414,14 @@ void MPIHyperbolicEquationSolver::FillNextLayer(const std::vector<double> &u0, c
 
 // TODO: refactore
 double MPIHyperbolicEquationSolver::FindValue(const std::vector<double> &u, int i, int j, int k, const std::vector<std::vector<double>> &u_recv) const {
-    int ind = 0;
+    for (auto it = 0; it < processNeighbours.size(); it++) {
+        Volume v = recvNeighbours[it];
 
-    for (auto it = recvNeighbours.begin(); it != recvNeighbours.end(); it++) {
-        Volume v = it->second;
-
-        if (i < v.xmin || i > v.xmax || j < v.ymin || j > v.ymax || k < v.zmin || k > v.zmax) {
-            ind++;
+        if (i < v.xmin || i > v.xmax || j < v.ymin || j > v.ymax || k < v.zmin || k > v.zmax)
             continue;
-        }
 
         int index = (i - v.xmin) * v.dy * v.dz + (j - v.ymin) * v.dz + (k - v.zmin);
-        return u_recv[ind][index];
+        return u_recv[it][index];
 
     }
 
@@ -440,7 +454,8 @@ double MPIHyperbolicEquationSolver::EvaluateError(const std::vector<double> &u, 
 }
 
 // решение
-void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath, const char *analyticalPath) {
+void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath) {
+    double t0 = MPI_Wtime();
     std::vector<Volume> volumes;
     SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
     volume = volumes[rank];
@@ -455,8 +470,10 @@ void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath,
     double error1 = EvaluateError(u[1], tau);
 
     if (rank == 0) {
-        std::cout << "Layer 0 max error: " << error0 << std::endl;
-        std::cout << "Layer 1 max error: " << error1 << std::endl;
+        std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+        fout << "Layer 0 max error: " << error0 << std::endl;
+        fout << "Layer 1 max error: " << error1 << std::endl;
+        fout.close();
     }
 
     for (int step = 2; step <= maxSteps; step++) {
@@ -465,29 +482,52 @@ void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath,
         double error = EvaluateError(u[step % 3], step * tau);
 
         if (rank == 0) {
-            std::cout << "Layer " << step << " max error: " << error << std::endl;
+            std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+            fout << "Layer " << step << " max error: " << error << std::endl;
+            fout.close();
         }
+    }
+
+    double t1 = MPI_Wtime();
+    double delta = t1 - t0;
+
+    double maxTime, minTime, avgTime;
+
+    MPI_Reduce(&delta, &maxTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&delta, &minTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&delta, &avgTime, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    if (rank == 0) {
+        std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+        fout << "Max time: " << maxTime << std::endl;
+        fout << "Min time: " << minTime << std::endl;
+        fout << "Average time: " << avgTime / size << std::endl;
+        fout.close();
     }
 }
 
 // вывод параметров
-void MPIHyperbolicEquationSolver::PrintParams() const {
-    std::cout << "Processors: " << size << std::endl << std::endl;
+void MPIHyperbolicEquationSolver::PrintParams(const char *outputPath) const {
+    std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
 
-    std::cout << "Lx: " << L.x << std::endl;
-    std::cout << "Ly: " << L.y << std::endl;
-    std::cout << "Lz: " << L.z << std::endl;
-    std::cout << "T: " << T << std::endl << std::endl;
+    fout << "Processors: " << size << std::endl << std::endl;
 
-    std::cout << "N: " << N << std::endl;
-    std::cout << "K: " << K << std::endl << std::endl;
+    fout << "Lx: " << L.x << std::endl;
+    fout << "Ly: " << L.y << std::endl;
+    fout << "Lz: " << L.z << std::endl;
+    fout << "T: " << T << std::endl << std::endl;
 
-    std::cout << "x_i = i*" << hx << ", i = 0..." << N << std::endl;
-    std::cout << "y_i = i*" << hy << ", i = 0..." << N << std::endl;
-    std::cout << "z_i = i*" << hz << ", i = 0..." << N << std::endl;
-    std::cout << "t_i = i*" << tau << ", i = 0..." << K << std::endl << std::endl;
+    fout << "N: " << N << std::endl;
+    fout << "K: " << K << std::endl << std::endl;
 
-    std::cout << "Type of boundary condition along axis X: " << bt.x << std::endl;
-    std::cout << "Type of boundary condition along axis Y: " << bt.y << std::endl;
-    std::cout << "Type of boundary condition along axis Z: " << bt.z << std::endl;
+    fout << "x_i = i*" << hx << ", i = 0..." << N << std::endl;
+    fout << "y_i = i*" << hy << ", i = 0..." << N << std::endl;
+    fout << "z_i = i*" << hz << ", i = 0..." << N << std::endl;
+    fout << "t_i = i*" << tau << ", i = 0..." << K << std::endl << std::endl;
+
+    fout << "Type of boundary condition along axis X: " << bt.x << std::endl;
+    fout << "Type of boundary condition along axis Y: " << bt.y << std::endl;
+    fout << "Type of boundary condition along axis Z: " << bt.z << std::endl;
+
+    fout.close();
 }

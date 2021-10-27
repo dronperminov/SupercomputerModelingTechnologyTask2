@@ -15,6 +15,7 @@ struct Arguments {
     BoundaryConditionTypes bt; // граничные условия
 
     bool debug; // режим отладки
+    char *outputPath; // путь для файла с выводом
     char *numericalPath; // путь для сохранения файла решения с точками
     char *analyticalPath; // путь для сохранения файла аналитического решения с точками
 };
@@ -139,7 +140,7 @@ BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
 // вывод сообщения помощи
 void ArgumentParser::Help() const {
     std::cout << "Usage: ./solve [-d] [-Lx Lx] [-Ly Ly] [-Lz Lz] [-T T] [-N N] [-K K] [-steps steps]" << std::endl;
-    std::cout << "               [-btx border_type] [-bty border_type] [-btz border_type] [-oa path] [-on path]" << std::endl << std::endl;
+    std::cout << "               [-btx border_type] [-bty border_type] [-btz border_type] [-oa path] [-on path] [-o path]" << std::endl << std::endl;
 
     std::cout << "Arguments:" << std::endl;
     std::cout << "-d     - debug mode (default = non used)" << std::endl;
@@ -155,6 +156,7 @@ void ArgumentParser::Help() const {
     std::cout << "-btz   - type of border condition along the Z axis (default = first-kind)" << std::endl;
     std::cout << "-on    - path to json file for saving numerical solve (default = non used)" << std::endl;
     std::cout << "-oa    - path to json file for saving analytical solve (default = non used)" << std::endl;
+    std::cout << "-o     - path to txt file for print info (default = output.txt)" << std::endl;
     std::cout << std::endl;
     std::cout << "Boundary condition types:" << std::endl;
     std::cout << "* first-kind (f)            - homogeneous boundary conditions of the first kind" << std::endl;
@@ -179,6 +181,7 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
     arguments.bt.z = BoundaryConditionType::FirstKind;
 
     arguments.debug = false;
+    arguments.outputPath = NULL;
     arguments.numericalPath = NULL;
     arguments.analyticalPath = NULL;
 
@@ -224,6 +227,12 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
                 throw "-oa argument value missed";
 
             arguments.analyticalPath = argv[i + 1];
+        }
+        else if (!strcmp(argv[i], "-o")) {
+            if (i >= argc - 1)
+                throw "-o argument value missed";
+
+            arguments.outputPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
             arguments.debug = true;

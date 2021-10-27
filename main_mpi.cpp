@@ -51,11 +51,11 @@ int main(int argc, char **argv) {
 
     if (arguments.debug && rank == 0) {
         cout << "Readed parameters: " << endl;
-        solver.PrintParams();
+        solver.PrintParams(arguments.outputPath);
         cout << endl;
     }
 
-    solver.Solve(arguments.steps, arguments.numericalPath, arguments.analyticalPath);    
+    solver.Solve(arguments.steps, arguments.outputPath, arguments.numericalPath, arguments.analyticalPath);
 
     MPI_Finalize();
 }
