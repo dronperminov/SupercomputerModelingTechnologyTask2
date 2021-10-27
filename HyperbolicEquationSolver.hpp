@@ -31,8 +31,8 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
-    void PrintParams() const; // вывод параметров
+    void Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
+    void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
 HyperbolicEquationSolver::HyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt) {
@@ -201,7 +201,7 @@ double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
 }
 
 // решение
-void HyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath, const char *analyticalPath) {
+void HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath) {
     double **u = new double*[3];
     u[0] = new double[layerSize];
     u[1] = new double[layerSize];
@@ -209,8 +209,9 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath, co
 
     FillInitialValues(u[0], u[1]); // заполняем начальные условия
 
-    std::cout << "Layer 0 max error: " << EvaluateError(u[0], 0) << std::endl;
-    std::cout << "Layer 1 max error: " << EvaluateError(u[1], tau) << std::endl;
+    std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+    fout << "Layer 0 max error: " << EvaluateError(u[0], 0) << std::endl;
+    fout << "Layer 1 max error: " << EvaluateError(u[1], tau) << std::endl;
 
     for (int step = 2; step <= maxSteps; step++) {
         #pragma omp parallel for collapse(3)
@@ -221,8 +222,10 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath, co
 
         FillBoundaryValues(u[step % 3], step * tau, false);
 
-        std::cout << "Layer " << step << " max error: " << EvaluateError(u[step % 3], step * tau) << std::endl;
+        fout << "Layer " << step << " max error: " << EvaluateError(u[step % 3], step * tau) << std::endl;
     }
+
+    fout.close();
 
     if (numericalPath) {
         SaveLayer(u[maxSteps % 3], maxSteps * tau, numericalPath);
@@ -240,21 +243,25 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *numericalPath, co
 }
 
 // вывод параметров
-void HyperbolicEquationSolver::PrintParams() const {
-    std::cout << "Lx: " << L.x << std::endl;
-    std::cout << "Ly: " << L.y << std::endl;
-    std::cout << "Lz: " << L.z << std::endl;
-    std::cout << "T: " << T << std::endl << std::endl;
+void HyperbolicEquationSolver::PrintParams(const char *outputPath) const {
+    std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
 
-    std::cout << "N: " << N << std::endl;
-    std::cout << "K: " << K << std::endl << std::endl;
+    fout << "Lx: " << L.x << std::endl;
+    fout << "Ly: " << L.y << std::endl;
+    fout << "Lz: " << L.z << std::endl;
+    fout << "T: " << T << std::endl << std::endl;
 
-    std::cout << "x_i = i*" << hx << ", i = 0..." << N << std::endl;
-    std::cout << "y_i = i*" << hy << ", i = 0..." << N << std::endl;
-    std::cout << "z_i = i*" << hz << ", i = 0..." << N << std::endl;
-    std::cout << "t_i = i*" << tau << ", i = 0..." << K << std::endl << std::endl;
+    fout << "N: " << N << std::endl;
+    fout << "K: " << K << std::endl << std::endl;
 
-    std::cout << "Type of boundary condition along axis X: " << bt.x << std::endl;
-    std::cout << "Type of boundary condition along axis Y: " << bt.y << std::endl;
-    std::cout << "Type of boundary condition along axis Z: " << bt.z << std::endl;
+    fout << "x_i = i*" << hx << ", i = 0..." << N << std::endl;
+    fout << "y_i = i*" << hy << ", i = 0..." << N << std::endl;
+    fout << "z_i = i*" << hz << ", i = 0..." << N << std::endl;
+    fout << "t_i = i*" << tau << ", i = 0..." << K << std::endl << std::endl;
+
+    fout << "Type of boundary condition along axis X: " << bt.x << std::endl;
+    fout << "Type of boundary condition along axis Y: " << bt.y << std::endl;
+    fout << "Type of boundary condition along axis Z: " << bt.z << std::endl << std::endl;;
+
+    fout.close();
 }

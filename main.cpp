@@ -26,10 +26,8 @@ int main(int argc, char **argv) {
     HyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt);
 
     if (arguments.debug) {
-        cout << "Readed parameters: " << endl;
-        solver.PrintParams();
-        cout << endl;
+        solver.PrintParams(arguments.outputPath);
     }
 
-    solver.Solve(arguments.steps, arguments.numericalPath, arguments.analyticalPath);
+    solver.Solve(arguments.steps, arguments.outputPath, arguments.numericalPath, arguments.analyticalPath);
 }
