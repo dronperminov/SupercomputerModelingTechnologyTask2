@@ -181,13 +181,14 @@ Visualizer.prototype.FindNeighbours = function(volumes) {
 }
 
 Visualizer.prototype.Draw = function() {
+    let N = +this.gridSizeBox.value
+    let P = +this.processorsBox.value
+
     this.neighbourBox.max = P - 1
 
     if (+this.neighbourBox.value >= P)
         this.neighbourBox.value = P - 1
 
-    let N = +this.gridSizeBox.value
-    let P = +this.processorsBox.value
     let neighbour = +this.neighbourBox.value
 
     this.info.innerHTML = '<b>Параметры:</b><br>'
