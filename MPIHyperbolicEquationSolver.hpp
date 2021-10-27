@@ -74,7 +74,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
+    void Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -454,8 +454,7 @@ double MPIHyperbolicEquationSolver::EvaluateError(const std::vector<double> &u, 
 }
 
 // решение
-void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath) {
-    double t0 = MPI_Wtime();
+void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, bool isSilent) {
     std::vector<Volume> volumes;
     SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
     volume = volumes[rank];
@@ -469,7 +468,7 @@ void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, co
     double error0 = EvaluateError(u[0], 0);
     double error1 = EvaluateError(u[1], tau);
 
-    if (rank == 0) {
+    if (rank == 0 && !isSilent) {
         std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
         fout << "Layer 0 max error: " << error0 << std::endl;
         fout << "Layer 1 max error: " << error1 << std::endl;
@@ -481,28 +480,11 @@ void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, co
 
         double error = EvaluateError(u[step % 3], step * tau);
 
-        if (rank == 0) {
+        if (rank == 0 && !isSilent) {
             std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
             fout << "Layer " << step << " max error: " << error << std::endl;
             fout.close();
         }
-    }
-
-    double t1 = MPI_Wtime();
-    double delta = t1 - t0;
-
-    double maxTime, minTime, avgTime;
-
-    MPI_Reduce(&delta, &maxTime, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&delta, &minTime, 1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
-    MPI_Reduce(&delta, &avgTime, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
-    if (rank == 0) {
-        std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
-        fout << "Max time: " << maxTime << std::endl;
-        fout << "Min time: " << minTime << std::endl;
-        fout << "Average time: " << avgTime / size << std::endl;
-        fout.close();
     }
 }
 
