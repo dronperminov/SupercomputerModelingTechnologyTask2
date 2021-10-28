@@ -12,6 +12,9 @@ function Visualizer() {
     this.neighbourBox = document.getElementById('neighbourBox')
     this.neighbourBox.addEventListener('change', () => this.Draw())
 
+    this.drawNeighbourBox = document.getElementById('drawNeighbourBox')
+    this.drawNeighbourBox.addEventListener('change', () => this.Draw())
+
     this.info = document.getElementById('info')
     this.Draw()
 }
@@ -189,6 +192,7 @@ Visualizer.prototype.Draw = function() {
     if (+this.neighbourBox.value >= P)
         this.neighbourBox.value = P - 1
 
+    let drawNeighbour = this.drawNeighbourBox.checked
     let neighbour = +this.neighbourBox.value
 
     this.info.innerHTML = '<b>Параметры:</b><br>'
@@ -210,7 +214,14 @@ Visualizer.prototype.Draw = function() {
     }
 
     let meshes = volumes.map((volume) => this.MakeParallelepipedMesh(volume))
-    meshes = meshes.concat(neighbours[neighbour].map((volume) => this.MakeParallelepipedMesh(volume, true)))
+
+    if (drawNeighbour) {
+        this.neighbourBox.parentNode.style.display = ''
+        meshes = meshes.concat(neighbours[neighbour].map((volume) => this.MakeParallelepipedMesh(volume, true)))
+    }
+    else {
+        this.neighbourBox.parentNode.style.display = 'none'
+    }
 
     Plotly.newPlot(this.plot, meshes, layout);
 }
