@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include <cassert>
+#include <vector>
+#include <cmath>
 #include "Entities.h"
 
 const char X_AXIS = 'x';
@@ -74,7 +76,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, bool isSilent = false); // решение
+    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -454,7 +456,7 @@ double MPIHyperbolicEquationSolver::EvaluateError(const std::vector<double> &u, 
 }
 
 // решение
-void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, bool isSilent) {
+double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, bool isSilent) {
     std::vector<Volume> volumes;
     SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
     volume = volumes[rank];
@@ -486,6 +488,8 @@ void MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, co
             fout.close();
         }
     }
+
+    return EvaluateError(u[maxSteps % 3], maxSteps * tau);
 }
 
 // вывод параметров

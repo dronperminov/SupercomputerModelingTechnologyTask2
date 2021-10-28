@@ -1,9 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <cmath>
-#include <vector>
-#include <map>
 #include <mpi.h>
 
 #include "ArgumentParser.hpp"

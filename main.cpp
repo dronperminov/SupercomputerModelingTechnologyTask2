@@ -1,6 +1,5 @@
 #include <iostream>
 #include <fstream>
-#include <cmath>
 #include "ArgumentParser.hpp"
 #include "HyperbolicEquationSolver.hpp"
 

@@ -22,6 +22,7 @@ class HyperbolicEquationSolver {
     void FillBoundaryValues(double *u, double t, bool isInitial) const; // заполнение граничными значениями
     void FillInitialValues(double *u0, double *u1) const; // заполнение начальных условий
     void FillAnalyticalValues(double *u, double t) const; // заполнение аналитических значений
+    void FillDifferenceValues(double *u, double t) const; // заполнение разности значений
 
     double LaplaceOperator(double *u, int i, int j, int k) const; // оператор Лапласа
     double EvaluateError(double *u, double t) const; // оценка погрешности на слое
@@ -187,6 +188,15 @@ void HyperbolicEquationSolver::FillAnalyticalValues(double *u, double t) const {
                 u[Index(i, j, k)] = AnalyticalSolve(i * hx, j * hy, k * hz, t);
 }
 
+// заполнение разности значений
+void HyperbolicEquationSolver::FillDifferenceValues(double *u, double t) const {
+    #pragma omp parallel for collapse(3)
+    for (int i = 0; i <= N; i++)
+        for (int j = 0; j <= N; j++)
+            for (int k = 0; k <= N; k++)
+                u[Index(i, j, k)] = fabs(u[Index(i, j, k)] - AnalyticalSolve(i * hx, j * hy, k * hz, t));
+}
+
 // оценка погрешности на слое
 double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
     double error = 0;
@@ -229,6 +239,8 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const
 
     if (numericalPath) {
         SaveLayer(u[maxSteps % 3], maxSteps * tau, numericalPath);
+        FillDifferenceValues(u[maxSteps % 3], maxSteps * tau);
+        SaveLayer(u[maxSteps % 3], maxSteps * tau, "difference.json");
     }
 
     if (analyticalPath) {
