@@ -47,14 +47,6 @@ int main(int argc, char **argv) {
     int N = atoi(argv[2]);
     double L = atof(argv[3]);
 
-    if (!IsExists(argv[1])) {
-        ofstream fout(argv[1]);
-        fout << "### Lx = Ly = Lz = " << L << ", N = " << N << ", K = " << K << endl << endl;
-        fout << "| Число MPI процессов (P) | Время решения (с) | Ускорение | Погрешность |" << endl;
-        fout << "|                     :-: |               :-: |       :-: |         :-: |" << endl;
-        fout.close();
-    }
-
     double T = 1;
     int K = 2000;
     int steps = 20;
@@ -65,6 +57,14 @@ int main(int argc, char **argv) {
         BoundaryConditionType::PeriodicAnalytical,
         BoundaryConditionType::FirstKind
     };
+
+    if (!IsExists(argv[1])) {
+        ofstream fout(argv[1]);
+        fout << "### Lx = Ly = Lz = " << L << ", N = " << N << ", K = " << K << endl << endl;
+        fout << "| Число MPI процессов (P) | Время решения (с) | Ускорение | Погрешность |" << endl;
+        fout << "|                     :-: |               :-: |       :-: |         :-: |" << endl;
+        fout.close();
+    }
 
     double t0 = MPI_Wtime();
     double error = 0;
