@@ -111,6 +111,7 @@ Volume MPIHyperbolicEquationSolver::MakeVolume(int xmin, int xmax, int ymin, int
 std::vector<double> MPIHyperbolicEquationSolver::PackVolume(const std::vector<double> &u, Volume v) const {
     std::vector<double> packed(v.size);
 
+    #pragma omp parallel for collapse(3)
     for (int i = v.xmin; i <= v.xmax; i++) {
         for (int j = v.ymin; j <= v.ymax; j++) {
             for (int k = v.zmin; k <= v.zmax; k++) {
@@ -414,7 +415,6 @@ void MPIHyperbolicEquationSolver::FillNextLayer(const std::vector<double> &u0, c
     FillBoundaryValues(u, t);
 }
 
-// TODO: refactore
 double MPIHyperbolicEquationSolver::FindValue(const std::vector<double> &u, int i, int j, int k, const std::vector<std::vector<double>> &u_recv) const {
     for (auto it = 0; it < processNeighbours.size(); it++) {
         Volume v = recvNeighbours[it];
@@ -424,7 +424,6 @@ double MPIHyperbolicEquationSolver::FindValue(const std::vector<double> &u, int 
 
         int index = (i - v.xmin) * v.dy * v.dz + (j - v.ymin) * v.dz + (k - v.zmin);
         return u_recv[it][index];
-
     }
 
     return u[LocalIndex(i, j, k)];
