@@ -68,6 +68,42 @@ Visualizer.prototype.MakeParallelepiped = function(xmin, xmax, ymin, ymax, zmin,
     }
 }
 
+Visualizer.prototype.SplitTape = function(xmin, xmax, ymin, ymax, zmin, zmax, size, axis) {
+    let splited = []
+
+    let prev
+
+    if (axis == 'x') {
+        prev = xmin
+    }
+    else if (axis == 'y') {
+        prev = ymin
+    }
+    else if (axis == 'z') {
+        prev = zmin
+    }
+
+    for (let i = 0; i < size; i++) {
+        if (axis == 'x') {
+            let x = Math.min(xmax, xmin + Math.floor((xmax - xmin) * (i + 1) / size))
+            splited.push(this.MakeParallelepiped(prev, x, ymin, ymax, zmin, zmax))
+            prev = x + 1
+        }
+        else if (axis == 'y') {
+            let y = Math.min(ymax, ymin + Math.floor((ymax - ymin) * (i + 1) / size))
+            splited.push(this.MakeParallelepiped(xmin, xmax, prev, y, zmin, zmax))
+            prev = y + 1
+        }
+        else if (axis == 'z') {
+            let z = Math.min(zmax, zmin + Math.floor((zmax - zmin) * (i + 1) / size))
+            splited.push(this.MakeParallelepiped(xmin, xmax, ymin, ymax, prev, z))
+            prev = z + 1
+        }
+    }
+
+    return splited
+}
+
 Visualizer.prototype.Split = function(xmin, xmax, ymin, ymax, zmin, zmax, size, axis) {
     if (size == 1)
         return [this.MakeParallelepiped(xmin, xmax, ymin, ymax, zmin, zmax)]
