@@ -32,7 +32,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    void Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL); // решение
+    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -211,7 +211,7 @@ double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
 }
 
 // решение
-void HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath) {
+double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, bool isSilent) {
     double **u = new double*[3];
     u[0] = new double[layerSize];
     u[1] = new double[layerSize];
@@ -220,8 +220,11 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const
     FillInitialValues(u[0], u[1]); // заполняем начальные условия
 
     std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
-    fout << "Layer 0 max error: " << EvaluateError(u[0], 0) << std::endl;
-    fout << "Layer 1 max error: " << EvaluateError(u[1], tau) << std::endl;
+
+    if (!isSilent) {
+        fout << "Layer 0 max error: " << EvaluateError(u[0], 0) << std::endl;
+        fout << "Layer 1 max error: " << EvaluateError(u[1], tau) << std::endl;
+    }
 
     for (int step = 2; step <= maxSteps; step++) {
         #pragma omp parallel for collapse(3)
@@ -232,7 +235,9 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const
 
         FillBoundaryValues(u[step % 3], step * tau, false);
 
-        fout << "Layer " << step << " max error: " << EvaluateError(u[step % 3], step * tau) << std::endl;
+        if (!isSilent) {
+            fout << "Layer " << step << " max error: " << EvaluateError(u[step % 3], step * tau) << std::endl;
+        }
     }
 
     fout.close();
@@ -248,10 +253,14 @@ void HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const
         SaveLayer(u[0], maxSteps * tau, analyticalPath);
     }
 
+    double error = EvaluateError(u[maxSteps % 3], maxSteps * tau);
+
     delete[] u[0];
     delete[] u[1];
     delete[] u[2];
     delete[] u;
+
+    return error;
 }
 
 // вывод параметров
