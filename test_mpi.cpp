@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <cstring>
 #include <mpi.h>
 
 #include "include/MPIHyperbolicEquationSolver.hpp"
@@ -34,6 +35,16 @@ bool IsExists(const char *path) {
     return true;
 }
 
+SplitType GetSplit(const char *arg) {
+    if (!strcmp(arg, "blocks") || !strcmp(arg, "b"))
+        return SplitType::Blocks;
+
+    if (!strcmp(arg, "tapes") || !strcmp(arg, "t"))
+        return SplitType::Tapes;
+
+    throw "incorrect split strategy";
+}
+
 int main(int argc, char **argv) {
     int rank, size;
 
@@ -46,6 +57,7 @@ int main(int argc, char **argv) {
 
     int N = atoi(argv[2]);
     double L = atof(argv[3]);
+    SplitType split = argc > 4 ? GetSplit(argv[4]) : SplitType::Blocks;
 
     double T = 1;
     int K = 2000;
@@ -66,7 +78,7 @@ int main(int argc, char **argv) {
 
     if (!IsExists(argv[1])) {
         ofstream fout(argv[1]);
-        fout << "### Lx = Ly = Lz = " << L << ", N = " << N << ", K = " << K << endl << endl;
+        fout << "### Lx = Ly = Lz = " << L << ", N = " << N << ", K = " << K << ", разбиение: " << split << endl << endl;
         fout << "| Число MPI процессов (P) | Время решения (с) | Ускорение | Погрешность |" << endl;
         fout << "|                     :-: |               :-: |       :-: |         :-: |" << endl;
         fout.close();
@@ -76,7 +88,7 @@ int main(int argc, char **argv) {
     double error = 0;
 
     for (int loop = 0; loop < loops; loop++) {
-        MPIHyperbolicEquationSolver solver({ L, L, L }, T, N, K, bt, rank, size);
+        MPIHyperbolicEquationSolver solver({ L, L, L }, T, N, K, bt, split, rank, size);
         error += solver.Solve(params, true);
     }
 

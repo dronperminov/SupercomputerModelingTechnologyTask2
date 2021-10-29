@@ -14,6 +14,12 @@ enum class BoundaryConditionType {
     PeriodicNumerical // численные периодические
 };
 
+// тип разбиения сетки
+enum class SplitType {
+    Blocks, // блочное разбиение
+    Tapes // ленточное разбиение
+};
+
 // граничные условия
 struct BoundaryConditionTypes {
     BoundaryConditionType x; // граничные условия по x
@@ -38,6 +44,16 @@ std::ostream& operator<<(std::ostream& os, const BoundaryConditionType type) {
 
     if (type == BoundaryConditionType::PeriodicNumerical)
         return os << "periodic-numerical";
+
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const SplitType split) {
+    if (split == SplitType::Blocks)
+        return os << "blocks";
+
+    if (split == SplitType::Tapes)
+        return os << "tapes";
 
     return os;
 }

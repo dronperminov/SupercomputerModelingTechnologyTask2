@@ -35,6 +35,7 @@ class MPIHyperbolicEquationSolver {
     VolumeSize L; // параметры параллелепипеда
     double T; // время
     BoundaryConditionTypes bt; // граничные условия
+    SplitType split; // тип разбиения
     int N; // размер пространственной сетки
     int K; // размер временной сетки
     double hx, hy, hz; // шаги пространственной сетки
@@ -55,6 +56,7 @@ class MPIHyperbolicEquationSolver {
     std::vector<double> SendRecvTotal(const std::vector<double> &u, const std::vector<Volume> &volumes) const; // отправка/получение общих начений
 
     void SplitGrid(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes);
+    void SplitTape(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes);
     bool IsInside(int xmin1, int xmax1, int ymin1, int ymax1, int xmin2, int xmax2, int ymin2, int ymax2) const;
     bool GetNeighbours(Volume v1, Volume v2, Volume &neighbour) const;
     void FillNeighbours(const std::vector<Volume> &volumes);
@@ -74,7 +76,7 @@ class MPIHyperbolicEquationSolver {
     double EvaluateError(const std::vector<double> &u, double t) const; // оценка погрешности на слое
     void SaveValues(const std::vector<double> u, double t, const std::vector<Volume> &volumes, const char *filename) const; // сохранение слоя
 public:
-    MPIHyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt, int rank, int size);
+    MPIHyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt, SplitType split, int rank, int size);
 
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
@@ -83,7 +85,7 @@ public:
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
-MPIHyperbolicEquationSolver::MPIHyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt, int rank, int size) {
+MPIHyperbolicEquationSolver::MPIHyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt, SplitType split, int rank, int size) {
     this->L = L;
     this->T = T;
 
@@ -96,6 +98,7 @@ MPIHyperbolicEquationSolver::MPIHyperbolicEquationSolver(VolumeSize L, double T,
     this->tau = T / K;
 
     this->bt = bt;
+    this->split = split;
     this->layerSize = (N + 1) * (N + 1) * (N + 1);
 
     this->rank = rank;
@@ -238,6 +241,38 @@ void MPIHyperbolicEquationSolver::SplitGrid(int xmin, int xmax, int ymin, int ym
         int z = (zmin + zmax) / 2;
         SplitGrid(xmin, xmax, ymin, ymax, zmin, z, size / 2, X_AXIS, volumes);
         SplitGrid(xmin, xmax, ymin, ymax, z + 1, zmax, size / 2, X_AXIS, volumes);
+    }
+}
+
+void MPIHyperbolicEquationSolver::SplitTape(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes) {
+    int prev;
+
+    if (axis == X_AXIS) {
+        prev = xmin;
+    }
+    else if (axis == Y_AXIS) {
+        prev = ymin;
+    }
+    else if (axis == Z_AXIS) {
+        prev = zmin;
+    }
+
+    for (int i = 0; i < size; i++) {
+        if (axis == X_AXIS) {
+            int x = std::min(xmax, xmin + (xmax - xmin) * (i + 1) / size);
+            volumes.push_back(MakeVolume(prev, x, ymin, ymax, zmin, zmax));
+            prev = x + 1;
+        }
+        else if (axis == Y_AXIS) {
+            int y = std::min(ymax, ymin + (ymax - ymin) * (i + 1) / size);
+            volumes.push_back(MakeVolume(xmin, xmax, prev, y, zmin, zmax));
+            prev = y + 1;
+        }
+        else if (axis == Z_AXIS) {
+            int z = std::min(zmax, zmin + (zmax - zmin) * (i + 1) / size);
+            volumes.push_back(MakeVolume(xmin, xmax, ymin, ymax, prev, z));
+            prev = z + 1;
+        }
     }
 }
 
@@ -552,7 +587,14 @@ void MPIHyperbolicEquationSolver::SaveValues(const std::vector<double> u, double
 // решение
 double MPIHyperbolicEquationSolver::Solve(SolveParams params, bool isSilent) {
     std::vector<Volume> volumes;
-    SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
+
+    if (split == SplitType::Blocks) {
+        SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
+    }
+    else if (split == SplitType::Tapes) {
+        SplitTape(0, N, 0, N, 0, N, size, X_AXIS, volumes);
+    }
+
     volume = volumes[rank];
 
     FillNeighbours(volumes);
@@ -621,7 +663,8 @@ void MPIHyperbolicEquationSolver::PrintParams(const char *outputPath) const {
 
     fout << "Type of boundary condition along axis X: " << bt.x << std::endl;
     fout << "Type of boundary condition along axis Y: " << bt.y << std::endl;
-    fout << "Type of boundary condition along axis Z: " << bt.z << std::endl;
+    fout << "Type of boundary condition along axis Z: " << bt.z << std::endl << std::endl;
 
+    fout << "Split strategy: " << split << std::endl << std::endl;
     fout.close();
 }

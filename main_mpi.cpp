@@ -26,7 +26,7 @@ void InitMPI(int &rank, int &size) {
 }
 
 int main(int argc, char **argv) {
-    ArgumentParser parser;
+    ArgumentParser parser(true);
 
     if (argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help"))) {
         parser.Help();
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     }
 
     double t0 = MPI_Wtime();
-    MPIHyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt, rank, size);
+    MPIHyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt, arguments.split, rank, size);
 
     if (arguments.debug && rank == 0) {
         solver.PrintParams(arguments.solveParams.outputPath);

@@ -12,22 +12,27 @@ struct Arguments {
     int K; // количество точек временной сетки
 
     BoundaryConditionTypes bt; // граничные условия
+    SplitType split; // тип разбиения
 
     bool debug; // режим отладки
     SolveParams solveParams;
 };
 
 class ArgumentParser {
+    bool isParallel;
+
     bool IsInteger(const char *s) const;
     bool IsReal(const char *s) const;
 
     int ParseInteger(int argc, char **argv, int i, int minValue) const;
     double ParseReal(int argc, char **argv, int i, bool onlyPositive = false) const;
 
-    BoundaryConditionType GetType(const char *arg) const; // получение типа граничного условия
+    BoundaryConditionType GetCondition(const char *arg) const; // получение типа граничного условия
+    SplitType GetSplit(const char *arg) const; // получение типа разбиения
 public:
-    void Help() const; // вывод сообщения помощи
+    ArgumentParser(bool isParallel = false);
 
+    void Help() const; // вывод сообщения помощи
     Arguments Parse(int argc, char **argv);
 };
 
@@ -125,7 +130,7 @@ double ArgumentParser::ParseReal(int argc, char **argv, int i, bool onlyPositive
 }
 
 // получение типа граничного условия
-BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
+BoundaryConditionType ArgumentParser::GetCondition(const char *arg) const {
     if (!strcmp(arg, "first") || !strcmp(arg, "first-kind") || !strcmp(arg, "f"))
         return BoundaryConditionType::FirstKind;
 
@@ -139,11 +144,33 @@ BoundaryConditionType ArgumentParser::GetType(const char *arg) const {
     throw "Unknown border condition type";
 }
 
+// получение типа разбиения
+SplitType ArgumentParser::GetSplit(const char *arg) const {
+    if (!strcmp(arg, "blocks") || !strcmp(arg, "b"))
+        return SplitType::Blocks;
+
+    if (!strcmp(arg, "tapes") || !strcmp(arg, "t"))
+        return SplitType::Tapes;
+
+    std::cout << "Unknown split type '" << arg << "'" << std::endl;
+    throw "Unknown split type";
+}
+
+ArgumentParser::ArgumentParser(bool isParallel) {
+    this->isParallel = isParallel;
+}
+
 // вывод сообщения помощи
 void ArgumentParser::Help() const {
     std::cout << "Usage: ./solve [-d] [-Lx Lx] [-Ly Ly] [-Lz Lz] [-T T] [-N N] [-K K] [-steps steps]" << std::endl;
     std::cout << "               [-btx border_type] [-bty border_type] [-btz border_type]" << std::endl;
-    std::cout << "               [-oa path] [-on path] [-od path] [-o path]" << std::endl << std::endl;
+
+    if (isParallel) {
+        std::cout << "               [-s split_type] [-oa path] [-on path] [-od path] [-o path]" << std::endl << std::endl;
+    }
+    else {
+        std::cout << "               [-oa path] [-on path] [-od path] [-o path]" << std::endl << std::endl;
+    }
 
     std::cout << "Arguments:" << std::endl;
     std::cout << "-d     - debug mode (default = non used)" << std::endl << std::endl;
@@ -161,6 +188,10 @@ void ArgumentParser::Help() const {
     std::cout << "-bty   - type of border condition along the Y axis (default = periodic-numerical)" << std::endl;
     std::cout << "-btz   - type of border condition along the Z axis (default = first-kind)" << std::endl << std::endl;
 
+    if (isParallel) {
+        std::cout << "-s     - type of splitting strategy (default = blocks)" << std::endl << std::endl;
+    }
+
     std::cout << "-on    - path to json file for saving numerical solve (default = non used)" << std::endl;
     std::cout << "-oa    - path to json file for saving analytical solve (default = non used)" << std::endl;
     std::cout << "-od    - path to json file for saving error (default = non used)" << std::endl;
@@ -170,6 +201,13 @@ void ArgumentParser::Help() const {
     std::cout << "* first-kind (f)            - homogeneous boundary conditions of the first kind" << std::endl;
     std::cout << "* periodic-analytical (pa)  - analytic periodic boundary conditions" << std::endl;
     std::cout << "* periodic-numerical (pn)   - numerical periodic boundary conditions" << std::endl;
+
+    if (isParallel) {
+        std::cout << std::endl;
+        std::cout << "Split types:" << std::endl;
+        std::cout << "* blocks (b)  - decomposition of grid by blocks" << std::endl;
+        std::cout << "* tapes (t)   - decomposition of grid by tapes" << std::endl;
+    }
 }
 
 Arguments ArgumentParser::Parse(int argc, char **argv) {
@@ -218,13 +256,13 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
             arguments.solveParams.steps = ParseInteger(argc, argv, i, 0);
         }
         else if (!strcmp(argv[i], "-btx")) {
-            arguments.bt.x = GetType(argv[i + 1]);
+            arguments.bt.x = GetCondition(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-bty")) {
-            arguments.bt.y = GetType(argv[i + 1]);
+            arguments.bt.y = GetCondition(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-btz")) {
-            arguments.bt.z = GetType(argv[i + 1]);
+            arguments.bt.z = GetCondition(argv[i + 1]);
         }
         else if (!strcmp(argv[i], "-on")) {
             if (i >= argc - 1)
@@ -253,6 +291,12 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
         else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
             arguments.debug = true;
             i--;
+        }
+        else if (isParallel && !strcmp(argv[i], "-s")) {
+            if (i >= argc - 1)
+                throw "-s argument value missed";
+
+            arguments.split = GetSplit(argv[i + 1]);
         }
         else {
             std::cout << "Unexpected argument '" << argv[i] << "'" << std::endl;
