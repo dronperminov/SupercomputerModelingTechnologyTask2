@@ -21,6 +21,14 @@ struct BoundaryConditionTypes {
     BoundaryConditionType z; // граничные условия по z
 };
 
+struct SolveParams {
+    int steps; // количество шагов по времени
+    char *outputPath; // путь для файла с выводом
+    char *numericalPath; // путь для сохранения файла решения с точками
+    char *analyticalPath; // путь для сохранения файла аналитического решения с точками
+    char *differencePath; // путь для сохранения файла погрешности с точками
+};
+
 std::ostream& operator<<(std::ostream& os, const BoundaryConditionType type) {
     if (type == BoundaryConditionType::FirstKind)
         return os << "first-kind";

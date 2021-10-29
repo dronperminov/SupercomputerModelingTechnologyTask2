@@ -32,7 +32,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, const char *differencePath = NULL, bool isSilent = false); // решение
+    double Solve(SolveParams params, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -211,7 +211,7 @@ double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
 }
 
 // решение
-double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, const char *differencePath, bool isSilent) {
+double HyperbolicEquationSolver::Solve(SolveParams params, bool isSilent) {
     double **u = new double*[3];
     u[0] = new double[layerSize];
     u[1] = new double[layerSize];
@@ -219,14 +219,14 @@ double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, con
 
     FillInitialValues(u[0], u[1]); // заполняем начальные условия
 
-    std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+    std::ofstream fout(params.outputPath ? params.outputPath : "output.txt", std::ios::app);
 
     if (!isSilent) {
         fout << "Layer 0 max error: " << EvaluateError(u[0], 0) << std::endl;
         fout << "Layer 1 max error: " << EvaluateError(u[1], tau) << std::endl;
     }
 
-    for (int step = 2; step <= maxSteps; step++) {
+    for (int step = 2; step <= params.steps; step++) {
         #pragma omp parallel for collapse(3)
         for (int i = 1; i < N; i++)
             for (int j = 1; j < N; j++)
@@ -242,21 +242,21 @@ double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, con
 
     fout.close();
 
-    if (numericalPath) {
-        SaveLayer(u[maxSteps % 3], maxSteps * tau, numericalPath);
+    if (params.numericalPath) {
+        SaveLayer(u[params.steps % 3], params.steps * tau, params.numericalPath);
     }
 
-    if (differencePath) {
-        FillDifferenceValues(u[maxSteps % 3], maxSteps * tau);
-        SaveLayer(u[maxSteps % 3], maxSteps * tau, differencePath);
+    if (params.differencePath) {
+        FillDifferenceValues(u[params.steps % 3], params.steps * tau);
+        SaveLayer(u[params.steps % 3], params.steps * tau, params.differencePath);
     }
 
-    if (analyticalPath) {
-        FillAnalyticalValues(u[0], maxSteps * tau);
-        SaveLayer(u[0], maxSteps * tau, analyticalPath);
+    if (params.analyticalPath) {
+        FillAnalyticalValues(u[0], params.steps * tau);
+        SaveLayer(u[0], params.steps * tau, params.analyticalPath);
     }
 
-    double error = EvaluateError(u[maxSteps % 3], maxSteps * tau);
+    double error = EvaluateError(u[params.steps % 3], params.steps * tau);
 
     delete[] u[0];
     delete[] u[1];

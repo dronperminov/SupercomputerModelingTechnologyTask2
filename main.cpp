@@ -25,8 +25,8 @@ int main(int argc, char **argv) {
     HyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt);
 
     if (arguments.debug) {
-        solver.PrintParams(arguments.outputPath);
+        solver.PrintParams(arguments.solveParams.outputPath);
     }
 
-    solver.Solve(arguments.steps, arguments.outputPath, arguments.numericalPath, arguments.analyticalPath, arguments.differencePath);
+    solver.Solve(arguments.solveParams);
 }

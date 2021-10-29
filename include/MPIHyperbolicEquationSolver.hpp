@@ -79,7 +79,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, const char *differencePath = NULL, bool isSilent = false); // решение
+    double Solve(SolveParams params, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -550,7 +550,7 @@ void MPIHyperbolicEquationSolver::SaveValues(const std::vector<double> u, double
 }
 
 // решение
-double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, const char *differencePath, bool isSilent) {
+double MPIHyperbolicEquationSolver::Solve(SolveParams params, bool isSilent) {
     std::vector<Volume> volumes;
     SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
     volume = volumes[rank];
@@ -565,39 +565,39 @@ double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, 
     double error1 = EvaluateError(u[1], tau);
 
     if (rank == 0 && !isSilent) {
-        std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+        std::ofstream fout(params.outputPath ? params.outputPath : "output.txt", std::ios::app);
         fout << "Layer 0 max error: " << error0 << std::endl;
         fout << "Layer 1 max error: " << error1 << std::endl;
         fout.close();
     }
 
-    for (int step = 2; step <= maxSteps; step++) {
+    for (int step = 2; step <= params.steps; step++) {
         FillNextLayer(u[(step + 1) % 3], u[(step + 2) % 3], u[step % 3], step * tau);
 
         double error = EvaluateError(u[step % 3], step * tau);
 
         if (rank == 0 && !isSilent) {
-            std::ofstream fout(outputPath ? outputPath : "output.txt", std::ios::app);
+            std::ofstream fout(params.outputPath ? params.outputPath : "output.txt", std::ios::app);
             fout << "Layer " << step << " max error: " << error << std::endl;
             fout.close();
         }
     }
 
-    if (numericalPath) {
-        SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, numericalPath);
+    if (params.numericalPath) {
+        SaveValues(u[params.steps % 3], params.steps * tau, volumes, params.numericalPath);
     }
 
-    if (differencePath) {
-        FillDifferenceValues(u[maxSteps % 3], maxSteps * tau);
-        SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, differencePath);
+    if (params.differencePath) {
+        FillDifferenceValues(u[params.steps % 3], params.steps * tau);
+        SaveValues(u[params.steps % 3], params.steps * tau, volumes, params.differencePath);
     }
 
-    if (analyticalPath) {
-        FillAnalyticalValues(u[0], maxSteps * tau);
-        SaveValues(u[0], maxSteps * tau, volumes, analyticalPath);
+    if (params.analyticalPath) {
+        FillAnalyticalValues(u[0], params.steps * tau);
+        SaveValues(u[0], params.steps * tau, volumes, params.analyticalPath);
     }
 
-    return EvaluateError(u[maxSteps % 3], maxSteps * tau);
+    return EvaluateError(u[params.steps % 3], params.steps * tau);
 }
 
 // вывод параметров

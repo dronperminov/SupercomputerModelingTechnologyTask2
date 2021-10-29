@@ -48,10 +48,10 @@ int main(int argc, char **argv) {
     MPIHyperbolicEquationSolver solver(arguments.L, arguments.T, arguments.N, arguments.K, arguments.bt, rank, size);
 
     if (arguments.debug && rank == 0) {
-        solver.PrintParams(arguments.outputPath);
+        solver.PrintParams(arguments.solveParams.outputPath);
     }
 
-    solver.Solve(arguments.steps, arguments.outputPath, arguments.numericalPath, arguments.analyticalPath, arguments.differencePath);
+    solver.Solve(arguments.solveParams);
 
     double t1 = MPI_Wtime();
     double delta = t1 - t0;
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     MPI_Reduce(&delta, &avgTime, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
     if (rank == 0) {
-        std::ofstream fout(arguments.outputPath ? arguments.outputPath : "output.txt", std::ios::app);
+        std::ofstream fout(arguments.solveParams.outputPath ? arguments.solveParams.outputPath : "output.txt", std::ios::app);
         fout << "Max time: " << maxTime << std::endl;
         fout << "Min time: " << minTime << std::endl;
         fout << "Average time: " << avgTime / size << std::endl;

@@ -49,7 +49,6 @@ int main(int argc, char **argv) {
 
     double T = 1;
     int K = 2000;
-    int steps = 20;
     int loops = 5;
 
     BoundaryConditionTypes bt = {
@@ -57,6 +56,13 @@ int main(int argc, char **argv) {
         BoundaryConditionType::PeriodicAnalytical,
         BoundaryConditionType::FirstKind
     };
+
+    SolveParams params;
+    params.steps = 20;
+    params.outputPath = NULL;
+    params.numericalPath = NULL;
+    params.analyticalPath = NULL;
+    params.differencePath = NULL;
 
     if (!IsExists(argv[1])) {
         ofstream fout(argv[1]);
@@ -71,7 +77,7 @@ int main(int argc, char **argv) {
 
     for (int loop = 0; loop < loops; loop++) {
         MPIHyperbolicEquationSolver solver({ L, L, L }, T, N, K, bt, rank, size);
-        error += solver.Solve(steps, NULL, NULL, NULL, NULL, true);
+        error += solver.Solve(params, true);
     }
 
     double t1 = MPI_Wtime();

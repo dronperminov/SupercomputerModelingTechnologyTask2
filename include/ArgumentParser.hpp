@@ -10,15 +10,11 @@ struct Arguments {
 
     int N; // количество точек пространственной сетки
     int K; // количество точек временной сетки
-    int steps; // количество шагов по времени
 
     BoundaryConditionTypes bt; // граничные условия
 
     bool debug; // режим отладки
-    char *outputPath; // путь для файла с выводом
-    char *numericalPath; // путь для сохранения файла решения с точками
-    char *analyticalPath; // путь для сохранения файла аналитического решения с точками
-    char *differencePath; // путь для сохранения файла погрешности с точками
+    SolveParams solveParams;
 };
 
 class ArgumentParser {
@@ -179,6 +175,8 @@ void ArgumentParser::Help() const {
 Arguments ArgumentParser::Parse(int argc, char **argv) {
     Arguments arguments;
 
+    arguments.debug = false;
+
     arguments.L.x = 1;
     arguments.L.y = 1;
     arguments.L.z = 1;
@@ -186,17 +184,16 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
 
     arguments.N = 40;
     arguments.K = 100;
-    arguments.steps = 20;
+    arguments.solveParams.steps = 20;
 
     arguments.bt.x = BoundaryConditionType::FirstKind;
     arguments.bt.y = BoundaryConditionType::PeriodicNumerical;
     arguments.bt.z = BoundaryConditionType::FirstKind;
 
-    arguments.debug = false;
-    arguments.outputPath = NULL;
-    arguments.numericalPath = NULL;
-    arguments.analyticalPath = NULL;
-    arguments.differencePath = NULL;
+    arguments.solveParams.outputPath = NULL;
+    arguments.solveParams.numericalPath = NULL;
+    arguments.solveParams.analyticalPath = NULL;
+    arguments.solveParams.differencePath = NULL;
 
     for (int i = 1; i < argc; i += 2) {
         if (!strcmp(argv[i], "-Lx")) {
@@ -218,7 +215,7 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
             arguments.K = ParseInteger(argc, argv, i, 1);
         }
         else if (!strcmp(argv[i], "-steps")) {
-            arguments.steps = ParseInteger(argc, argv, i, 0);
+            arguments.solveParams.steps = ParseInteger(argc, argv, i, 0);
         }
         else if (!strcmp(argv[i], "-btx")) {
             arguments.bt.x = GetType(argv[i + 1]);
@@ -233,25 +230,25 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
             if (i >= argc - 1)
                 throw "-on argument value missed";
 
-            arguments.numericalPath = argv[i + 1];
+            arguments.solveParams.numericalPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-oa")) {
             if (i >= argc - 1)
                 throw "-oa argument value missed";
 
-            arguments.analyticalPath = argv[i + 1];
+            arguments.solveParams.analyticalPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-od")) {
             if (i >= argc - 1)
                 throw "-od argument value missed";
 
-            arguments.differencePath = argv[i + 1];
+            arguments.solveParams.differencePath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-o")) {
             if (i >= argc - 1)
                 throw "-o argument value missed";
 
-            arguments.outputPath = argv[i + 1];
+            arguments.solveParams.outputPath = argv[i + 1];
         }
         else if (!strcmp(argv[i], "-d") || !strcmp(argv[i], "--debug")) {
             arguments.debug = true;
