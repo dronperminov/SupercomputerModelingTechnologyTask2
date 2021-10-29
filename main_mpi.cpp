@@ -3,8 +3,8 @@
 #include <iomanip>
 #include <mpi.h>
 
-#include "ArgumentParser.hpp"
-#include "MPIHyperbolicEquationSolver.hpp"
+#include "include/ArgumentParser.hpp"
+#include "include/MPIHyperbolicEquationSolver.hpp"
 
 using namespace std;
 

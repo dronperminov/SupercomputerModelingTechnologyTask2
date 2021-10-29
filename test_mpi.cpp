@@ -3,7 +3,7 @@
 #include <iomanip>
 #include <mpi.h>
 
-#include "MPIHyperbolicEquationSolver.hpp"
+#include "include/MPIHyperbolicEquationSolver.hpp"
 
 using namespace std;
 

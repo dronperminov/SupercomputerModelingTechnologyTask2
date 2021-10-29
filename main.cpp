@@ -1,7 +1,7 @@
 #include <iostream>
 #include <fstream>
-#include "ArgumentParser.hpp"
-#include "HyperbolicEquationSolver.hpp"
+#include "include/ArgumentParser.hpp"
+#include "include/HyperbolicEquationSolver.hpp"
 
 using namespace std;
 
