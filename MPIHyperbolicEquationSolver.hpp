@@ -2,7 +2,6 @@
 
 #include <iostream>
 #include <fstream>
-#include <cassert>
 #include <vector>
 #include <cmath>
 #include "Entities.h"
@@ -54,22 +53,27 @@ class MPIHyperbolicEquationSolver {
     Volume MakeVolume(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax) const;
     std::vector<double> PackVolume(const std::vector<double> &u, Volume volume) const;
     std::vector<std::vector<double>> SendRecvValues(const std::vector<double> &u) const; // отправка/получение соседних значений
+    std::vector<double> SendRecvTotal(const std::vector<double> &u, const std::vector<Volume> &volumes) const; // отправка/получение общих начений
 
     void SplitGrid(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes);
     bool IsInside(int xmin1, int xmax1, int ymin1, int ymax1, int xmin2, int xmax2, int ymin2, int ymax2) const;
     bool GetNeighbours(Volume v1, Volume v2, Volume &neighbour) const;
     void FillNeighbours(const std::vector<Volume> &volumes);
 
+    int Index(int i, int j, int k, Volume v) const;
     int LocalIndex(int i, int j, int k) const;
     double GetBoundaryValue(int i, int j, int k, double t) const;
 
     void FillBoundaryValues(std::vector<double> &u, double t) const; // заполнение граничными значениями
     void FillInitialValues(std::vector<double> &u0, std::vector<double> &u1) const; // заполнение начальных условий
     void FillNextLayer(const std::vector<double> &u0, const std::vector<double> &u1, std::vector<double> &u, double t);
+    void FillAnalyticalValues(std::vector<double> &u, double t) const; // заполнение аналитических значений
+    void FillDifferenceValues(std::vector<double> &u, double t) const; // заполнение разности значений
 
     double FindValue(const std::vector<double> &u, int i, int j, int k, const std::vector<std::vector<double>> &u_recv) const;
     double LaplaceOperator(const std::vector<double> &u, int i, int j, int k, const std::vector<std::vector<double>> &u_recv) const; // оператор Лапласа
     double EvaluateError(const std::vector<double> &u, double t) const; // оценка погрешности на слое
+    void SaveValues(const std::vector<double> u, double t, const std::vector<Volume> &volumes, const char *filename) const; // сохранение слоя
 public:
     MPIHyperbolicEquationSolver(VolumeSize L, double T, int N, int K, BoundaryConditionTypes bt, int rank, int size);
 
@@ -99,6 +103,18 @@ MPIHyperbolicEquationSolver::MPIHyperbolicEquationSolver(VolumeSize L, double T,
     this->size = size;
 }
 
+// аналитическое решение
+double MPIHyperbolicEquationSolver::AnalyticalSolve(double x, double y, double z, double t) const {
+    double at = M_PI * sqrt(1 / (L.x * L.x) + 1 / (L.y * L.y) + 1 / (L.z * L.z));
+
+    return sin(M_PI / L.x * x) * sin(2 * M_PI / L.y * y) * sin(3 * M_PI / L.z * z) * cos(at * t + 2*M_PI);
+}
+
+// начальные условия
+double MPIHyperbolicEquationSolver::Phi(double x, double y, double z) const {
+    return AnalyticalSolve(x, y, z, 0);
+}
+
 Volume MPIHyperbolicEquationSolver::MakeVolume(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax) const {
     int dx = xmax - xmin + 1;
     int dy = ymax - ymin + 1;
@@ -112,14 +128,10 @@ std::vector<double> MPIHyperbolicEquationSolver::PackVolume(const std::vector<do
     std::vector<double> packed(v.size);
 
     #pragma omp parallel for collapse(3)
-    for (int i = v.xmin; i <= v.xmax; i++) {
-        for (int j = v.ymin; j <= v.ymax; j++) {
-            for (int k = v.zmin; k <= v.zmax; k++) {
-                int index = (i - v.xmin) * v.dy * v.dz + (j - v.ymin) * v.dz + (k - v.zmin);
-                packed[index] = u[LocalIndex(i, j, k)];
-            }
-        }
-    }
+    for (int i = v.xmin; i <= v.xmax; i++)
+        for (int j = v.ymin; j <= v.ymax; j++)
+            for (int k = v.zmin; k <= v.zmax; k++)
+                packed[Index(i, j, k, v)] = u[LocalIndex(i, j, k)];
 
     return packed;
 }
@@ -147,6 +159,46 @@ std::vector<std::vector<double>> MPIHyperbolicEquationSolver::SendRecvValues(con
     MPI_Waitall(totalNeighbours, requests.data(), statuses.data());
 
     return u_recv;
+}
+
+// отправка/получение общих начений
+std::vector<double> MPIHyperbolicEquationSolver::SendRecvTotal(const std::vector<double> &u, const std::vector<Volume> &volumes) const {
+    if (rank != 0) {
+        MPI_Request request;
+        MPI_Status status;
+
+        MPI_Isend(u.data(), volume.size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &request);
+        MPI_Waitall(1, &request, &status);
+        return u;
+    }
+
+    std::vector<double> u_all(layerSize);
+    Volume volumeAll = MakeVolume(0, N, 0, N, 0, N);
+
+    for (int index = 0; index < size; index++) {
+        std::vector<double> ui(volumes[index].size);
+
+        if (index == rank) {
+            ui = u;
+        }
+        else {
+            std::vector<MPI_Request> requests(1);
+            std::vector<MPI_Status> statuses(1);
+
+            MPI_Irecv(ui.data(), volumes[index].size, MPI_DOUBLE, index, 0, MPI_COMM_WORLD, &requests[0]);
+            MPI_Waitall(1, requests.data(), statuses.data());
+        }
+
+        for (int i = volumes[index].xmin; i <= volumes[index].xmax; i++) {
+            for (int j = volumes[index].ymin; j <= volumes[index].ymax; j++) {
+                for (int k = volumes[index].zmin; k <= volumes[index].zmax; k++) {
+                    u_all[Index(i, j, k, volumeAll)] = ui[Index(i, j, k, volumes[index])];
+                }
+            }
+        }
+    }
+
+    return u_all;
 }
 
 void MPIHyperbolicEquationSolver::SplitGrid(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes) {
@@ -276,20 +328,12 @@ void MPIHyperbolicEquationSolver::FillNeighbours(const std::vector<Volume> &volu
     }
 }
 
-// аналитическое решение
-double MPIHyperbolicEquationSolver::AnalyticalSolve(double x, double y, double z, double t) const {
-    double at = M_PI * sqrt(1 / (L.x * L.x) + 1 / (L.y * L.y) + 1 / (L.z * L.z));
-
-    return sin(M_PI / L.x * x) * sin(2 * M_PI / L.y * y) * sin(3 * M_PI / L.z * z) * cos(at * t + 2*M_PI);
-}
-
-// начальные условия
-double MPIHyperbolicEquationSolver::Phi(double x, double y, double z) const {
-    return AnalyticalSolve(x, y, z, 0);
+int MPIHyperbolicEquationSolver::Index(int i, int j, int k, Volume v) const {
+    return (i - v.xmin) * v.dy * v.dz + (j - v.ymin) * v.dz + (k - v.zmin);
 }
 
 int MPIHyperbolicEquationSolver::LocalIndex(int i, int j, int k) const {
-    return (i - volume.xmin) * volume.dy * volume.dz + (j - volume.ymin) * volume.dz + (k - volume.zmin);
+    return Index(i, j, k, volume);
 }
 
 // TODO: numerical boundary values
@@ -377,10 +421,13 @@ void MPIHyperbolicEquationSolver::FillInitialValues(std::vector<double> &u0, std
     int zmax = std::min(volume.zmax, N - 1);
 
     #pragma omp parallel for collapse(3)
-    for (int i = xmin; i <= xmax; i++)
-        for (int j = ymin; j <= ymax; j++)
-            for (int k = zmin; k <= zmax; k++)
+    for (int i = xmin; i <= xmax; i++) {
+        for (int j = ymin; j <= ymax; j++) {
+            for (int k = zmin; k <= zmax; k++) {
                 u0[LocalIndex(i, j, k)] = Phi(i * hx, j * hy, k * hz);
+            }
+        }
+    }
 
     std::vector<std::vector<double>> u0_recv = SendRecvValues(u0);
 
@@ -415,6 +462,27 @@ void MPIHyperbolicEquationSolver::FillNextLayer(const std::vector<double> &u0, c
     FillBoundaryValues(u, t);
 }
 
+// заполнение аналитических значений
+void MPIHyperbolicEquationSolver::FillAnalyticalValues(std::vector<double> &u, double t) const {
+    #pragma omp parallel for collapse(3)
+    for (int i = volume.xmin; i <= volume.xmax; i++)
+        for (int j = volume.ymin; j <= volume.ymax; j++)
+            for (int k = volume.zmin; k <= volume.zmax; k++)
+                u[LocalIndex(i, j, k)] = AnalyticalSolve(i * hx, j * hy, k * hz, t);
+}
+
+// заполнение разности значений
+void MPIHyperbolicEquationSolver::FillDifferenceValues(std::vector<double> &u, double t) const {
+    #pragma omp parallel for collapse(3)
+    for (int i = volume.xmin; i <= volume.xmax; i++) {
+        for (int j = volume.ymin; j <= volume.ymax; j++) {
+            for (int k = volume.zmin; k <= volume.zmax; k++) {
+                u[LocalIndex(i, j, k)] = fabs(u[LocalIndex(i, j, k)] - AnalyticalSolve(i * hx, j * hy, k * hz, t));
+            }
+        }
+    }
+}
+
 double MPIHyperbolicEquationSolver::FindValue(const std::vector<double> &u, int i, int j, int k, const std::vector<std::vector<double>> &u_recv) const {
     for (auto it = 0; it < processNeighbours.size(); it++) {
         Volume v = recvNeighbours[it];
@@ -422,8 +490,7 @@ double MPIHyperbolicEquationSolver::FindValue(const std::vector<double> &u, int 
         if (i < v.xmin || i > v.xmax || j < v.ymin || j > v.ymax || k < v.zmin || k > v.zmax)
             continue;
 
-        int index = (i - v.xmin) * v.dy * v.dz + (j - v.ymin) * v.dz + (k - v.zmin);
-        return u_recv[it][index];
+        return u_recv[it][Index(i, j, k, v)];
     }
 
     return u[LocalIndex(i, j, k)];
@@ -452,6 +519,43 @@ double MPIHyperbolicEquationSolver::EvaluateError(const std::vector<double> &u, 
     MPI_Reduce(&localError, &error, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
     return error;
+}
+
+// сохранение слоя
+void MPIHyperbolicEquationSolver::SaveValues(const std::vector<double> u, double t, const std::vector<Volume> &volumes, const char *filename) const {
+    std::vector<double> u_all = SendRecvTotal(u, volumes);
+
+    if (rank != 0)
+        return;
+
+    std::ofstream f(filename);
+
+    f << "{" << std::endl;
+    f << "    \"Lx\": " << L.x << ", " << std::endl;
+    f << "    \"Ly\": " << L.y << ", " << std::endl;
+    f << "    \"Lz\": " << L.z << ", " << std::endl;
+    f << "    \"N\": " << N << ", " << std::endl;
+    f << "    \"t\": " << t << ", " << std::endl;
+    f << "    \"u\": [" << std::endl;
+
+    bool wasPrinted = false;
+
+    for (int i = 0; i < layerSize; i++) {
+        if (wasPrinted) {
+            f << ", " << std::endl;
+        }
+        else {
+            wasPrinted = true;
+        }
+
+        f << "    " << u_all[i];
+    }
+
+    f << std::endl;
+    f << "    ]" << std::endl;
+    f << "}" << std::endl;
+
+    f.close();
 }
 
 // решение
@@ -486,6 +590,17 @@ double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, 
             fout << "Layer " << step << " max error: " << error << std::endl;
             fout.close();
         }
+    }
+
+    if (numericalPath) {
+        SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, numericalPath);
+        FillDifferenceValues(u[maxSteps % 3], maxSteps * tau);
+        SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, "difference.json");
+    }
+
+    if (analyticalPath) {
+        FillAnalyticalValues(u[0], maxSteps * tau);
+        SaveValues(u[0], maxSteps * tau, volumes, analyticalPath);
     }
 
     return EvaluateError(u[maxSteps % 3], maxSteps * tau);
