@@ -79,7 +79,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, bool isSilent = false); // решение
+    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, const char *differencePath = NULL, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -550,7 +550,7 @@ void MPIHyperbolicEquationSolver::SaveValues(const std::vector<double> u, double
 }
 
 // решение
-double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, bool isSilent) {
+double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, const char *differencePath, bool isSilent) {
     std::vector<Volume> volumes;
     SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
     volume = volumes[rank];
@@ -585,8 +585,11 @@ double MPIHyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, 
 
     if (numericalPath) {
         SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, numericalPath);
+    }
+
+    if (differencePath) {
         FillDifferenceValues(u[maxSteps % 3], maxSteps * tau);
-        SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, "difference.json");
+        SaveValues(u[maxSteps % 3], maxSteps * tau, volumes, differencePath);
     }
 
     if (analyticalPath) {

@@ -32,7 +32,7 @@ public:
     double AnalyticalSolve(double x, double y, double z, double t) const; // аналитическое решение
     double Phi(double x, double y, double z) const; // начальные условия
 
-    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, bool isSilent = false); // решение
+    double Solve(int maxSteps = 20, const char *outputPath = NULL, const char *numericalPath = NULL, const char *analyticalPath = NULL, const char *differencePath = NULL, bool isSilent = false); // решение
     void PrintParams(const char *outputPath) const; // вывод параметров
 };
 
@@ -211,7 +211,7 @@ double HyperbolicEquationSolver::EvaluateError(double *u, double t) const {
 }
 
 // решение
-double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, bool isSilent) {
+double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, const char *numericalPath, const char *analyticalPath, const char *differencePath, bool isSilent) {
     double **u = new double*[3];
     u[0] = new double[layerSize];
     u[1] = new double[layerSize];
@@ -244,8 +244,11 @@ double HyperbolicEquationSolver::Solve(int maxSteps, const char *outputPath, con
 
     if (numericalPath) {
         SaveLayer(u[maxSteps % 3], maxSteps * tau, numericalPath);
+    }
+
+    if (differencePath) {
         FillDifferenceValues(u[maxSteps % 3], maxSteps * tau);
-        SaveLayer(u[maxSteps % 3], maxSteps * tau, "difference.json");
+        SaveLayer(u[maxSteps % 3], maxSteps * tau, differencePath);
     }
 
     if (analyticalPath) {

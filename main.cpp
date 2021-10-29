@@ -28,5 +28,5 @@ int main(int argc, char **argv) {
         solver.PrintParams(arguments.outputPath);
     }
 
-    solver.Solve(arguments.steps, arguments.outputPath, arguments.numericalPath, arguments.analyticalPath);
+    solver.Solve(arguments.steps, arguments.outputPath, arguments.numericalPath, arguments.analyticalPath, arguments.differencePath);
 }

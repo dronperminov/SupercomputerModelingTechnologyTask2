@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
 
     for (int loop = 0; loop < loops; loop++) {
         MPIHyperbolicEquationSolver solver({ L, L, L }, T, N, K, bt, rank, size);
-        error += solver.Solve(steps, NULL, NULL, NULL, true);
+        error += solver.Solve(steps, NULL, NULL, NULL, NULL, true);
     }
 
     double t1 = MPI_Wtime();
