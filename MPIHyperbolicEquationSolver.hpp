@@ -48,7 +48,6 @@ class MPIHyperbolicEquationSolver {
     std::vector<Volume> sendNeighbours; // соседи на передачу
     std::vector<Volume> recvNeighbours; // соседи на приём
     std::vector<int> processNeighbours; // соседи процессы
-    int totalNeighbours; // общее количество точек соседей
 
     Volume MakeVolume(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax) const;
     std::vector<double> PackVolume(const std::vector<double> &u, Volume volume) const;
@@ -140,23 +139,17 @@ std::vector<double> MPIHyperbolicEquationSolver::PackVolume(const std::vector<do
 std::vector<std::vector<double>> MPIHyperbolicEquationSolver::SendRecvValues(const std::vector<double> &u) const {
     std::vector<std::vector<double>> u_recv(processNeighbours.size());
 
-    std::vector<MPI_Request> requests(totalNeighbours);
-    std::vector<MPI_Status> statuses(totalNeighbours);
-
-    int index = 0;
-
     for (auto i = 0; i < processNeighbours.size(); i++) {
         std::vector<double> packed = PackVolume(u, sendNeighbours[i]);
         u_recv[i] = std::vector<double>(recvNeighbours[i].size);
 
-        for (int j = 0; j < sendNeighbours[i].size; j++)
-            MPI_Isend(&packed[j], 1, MPI_DOUBLE, processNeighbours[i], 0, MPI_COMM_WORLD, &requests[index++]);
+        std::vector<MPI_Request> requests(2);
+        std::vector<MPI_Status> statuses(2);
 
-        for (int j = 0; j < recvNeighbours[i].size; j++)
-            MPI_Irecv(&u_recv[i][j], 1, MPI_DOUBLE, processNeighbours[i], 0, MPI_COMM_WORLD, &requests[index++]);
+        MPI_Isend(packed.data(), sendNeighbours[i].size, MPI_DOUBLE, processNeighbours[i], 0, MPI_COMM_WORLD, &requests[0]);
+        MPI_Irecv(u_recv[i].data(), recvNeighbours[i].size, MPI_DOUBLE, processNeighbours[i], 0, MPI_COMM_WORLD, &requests[1]);
+        MPI_Waitall(2, requests.data(), statuses.data());
     }
-
-    MPI_Waitall(totalNeighbours, requests.data(), statuses.data());
 
     return u_recv;
 }
@@ -308,7 +301,6 @@ void MPIHyperbolicEquationSolver::FillNeighbours(const std::vector<Volume> &volu
     sendNeighbours.clear();
     recvNeighbours.clear();
     processNeighbours.clear();
-    totalNeighbours = 0;
 
     for (int i = 0; i < size; i++) {
         if (i == rank)
@@ -324,7 +316,6 @@ void MPIHyperbolicEquationSolver::FillNeighbours(const std::vector<Volume> &volu
         processNeighbours.push_back(i);
         sendNeighbours.push_back(sendNeighbour);
         recvNeighbours.push_back(recvNeighbour);
-        totalNeighbours += sendNeighbour.size + recvNeighbour.size; // yes, they are equal
     }
 }
 
