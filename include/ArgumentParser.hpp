@@ -228,6 +228,8 @@ Arguments ArgumentParser::Parse(int argc, char **argv) {
     arguments.bt.y = BoundaryConditionType::PeriodicNumerical;
     arguments.bt.z = BoundaryConditionType::FirstKind;
 
+    arguments.split = SplitType::Blocks;
+
     arguments.solveParams.outputPath = NULL;
     arguments.solveParams.numericalPath = NULL;
     arguments.solveParams.analyticalPath = NULL;

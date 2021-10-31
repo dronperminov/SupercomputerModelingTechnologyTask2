@@ -5,24 +5,7 @@
 #include <vector>
 #include <cmath>
 #include "Entities.h"
-
-const char X_AXIS = 'x';
-const char Y_AXIS = 'y';
-const char Z_AXIS = 'z';
-
-struct Volume {
-    int xmin;
-    int xmax;
-    int ymin;
-    int ymax;
-    int zmin;
-    int zmax;
-
-    int dx;
-    int dy;
-    int dz;
-    int size;
-};
+#include "GridSplitter.hpp"
 
 std::ostream& operator<<(std::ostream& os, const Volume &volume) {
     os << "[" << volume.xmin << ", " << volume.xmax << "] x [";
@@ -50,13 +33,10 @@ class MPIHyperbolicEquationSolver {
     std::vector<Volume> recvNeighbours; // соседи на приём
     std::vector<int> processNeighbours; // соседи процессы
 
-    Volume MakeVolume(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax) const;
     std::vector<double> PackVolume(const std::vector<double> &u, Volume volume) const;
     std::vector<std::vector<double>> SendRecvValues(const std::vector<double> &u) const; // отправка/получение соседних значений
     std::vector<double> SendRecvTotal(const std::vector<double> &u, const std::vector<Volume> &volumes) const; // отправка/получение общих начений
 
-    void SplitGrid(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes);
-    void SplitTape(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes);
     bool IsInside(int xmin1, int xmax1, int ymin1, int ymax1, int xmin2, int xmax2, int ymin2, int ymax2) const;
     bool GetNeighbours(Volume v1, Volume v2, Volume &neighbour) const;
     void FillNeighbours(const std::vector<Volume> &volumes);
@@ -115,15 +95,6 @@ double MPIHyperbolicEquationSolver::AnalyticalSolve(double x, double y, double z
 // начальные условия
 double MPIHyperbolicEquationSolver::Phi(double x, double y, double z) const {
     return AnalyticalSolve(x, y, z, 0);
-}
-
-Volume MPIHyperbolicEquationSolver::MakeVolume(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax) const {
-    int dx = xmax - xmin + 1;
-    int dy = ymax - ymin + 1;
-    int dz = zmax - zmin + 1;
-    int size = dx * dy * dz;
-
-    return { xmin, xmax, ymin, ymax, zmin, zmax, dx, dy, dz, size };
 }
 
 std::vector<double> MPIHyperbolicEquationSolver::PackVolume(const std::vector<double> &u, Volume v) const {
@@ -195,85 +166,6 @@ std::vector<double> MPIHyperbolicEquationSolver::SendRecvTotal(const std::vector
     }
 
     return u_all;
-}
-
-void MPIHyperbolicEquationSolver::SplitGrid(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes) {
-    if (size == 1) {
-        volumes.push_back(MakeVolume(xmin, xmax, ymin, ymax, zmin, zmax));
-        return;
-    }
-
-    if (size % 2 == 1) {
-        if (axis == X_AXIS) {
-            int x = xmin + (xmax - xmin) / size;
-
-            volumes.push_back(MakeVolume(xmin, x, ymin, ymax, zmin, zmax));
-            xmin = x + 1;
-            axis = Y_AXIS;
-        }
-        else if (axis == Y_AXIS) {
-            int y = ymin + (ymax - ymin) / size;
-            volumes.push_back(MakeVolume(xmin, xmax, ymin, y, zmin, zmax));
-            ymin = y + 1;
-            axis = Z_AXIS;
-        }
-        else {
-            int z = zmin + (zmax - zmin) / size;
-            volumes.push_back(MakeVolume(xmin, xmax, ymin, ymax, zmin, z));
-            zmin = z + 1;
-            axis = X_AXIS;
-        }
-
-        size--;
-    }
-
-    if (axis == X_AXIS) {
-        int x = (xmin + xmax) / 2;
-        SplitGrid(xmin, x, ymin, ymax, zmin, zmax, size / 2, Y_AXIS, volumes);
-        SplitGrid(x + 1, xmax, ymin, ymax, zmin, zmax, size / 2, Y_AXIS, volumes);
-    }
-    else if (axis == Y_AXIS) {
-        int y = (ymin + ymax) / 2;
-        SplitGrid(xmin, xmax, ymin, y, zmin, zmax, size / 2, Z_AXIS, volumes);
-        SplitGrid(xmin, xmax, y + 1, ymax, zmin, zmax, size / 2, Z_AXIS, volumes);
-    }
-    else {
-        int z = (zmin + zmax) / 2;
-        SplitGrid(xmin, xmax, ymin, ymax, zmin, z, size / 2, X_AXIS, volumes);
-        SplitGrid(xmin, xmax, ymin, ymax, z + 1, zmax, size / 2, X_AXIS, volumes);
-    }
-}
-
-void MPIHyperbolicEquationSolver::SplitTape(int xmin, int xmax, int ymin, int ymax, int zmin, int zmax, int size, char axis, std::vector<Volume> &volumes) {
-    int prev;
-
-    if (axis == X_AXIS) {
-        prev = xmin;
-    }
-    else if (axis == Y_AXIS) {
-        prev = ymin;
-    }
-    else if (axis == Z_AXIS) {
-        prev = zmin;
-    }
-
-    for (int i = 0; i < size; i++) {
-        if (axis == X_AXIS) {
-            int x = std::min(xmax, xmin + (xmax - xmin) * (i + 1) / size);
-            volumes.push_back(MakeVolume(prev, x, ymin, ymax, zmin, zmax));
-            prev = x + 1;
-        }
-        else if (axis == Y_AXIS) {
-            int y = std::min(ymax, ymin + (ymax - ymin) * (i + 1) / size);
-            volumes.push_back(MakeVolume(xmin, xmax, prev, y, zmin, zmax));
-            prev = y + 1;
-        }
-        else if (axis == Z_AXIS) {
-            int z = std::min(zmax, zmin + (zmax - zmin) * (i + 1) / size);
-            volumes.push_back(MakeVolume(xmin, xmax, ymin, ymax, prev, z));
-            prev = z + 1;
-        }
-    }
 }
 
 bool MPIHyperbolicEquationSolver::IsInside(int xmin1, int xmax1, int ymin1, int ymax1, int xmin2, int xmax2, int ymin2, int ymax2) const {
@@ -586,15 +478,8 @@ void MPIHyperbolicEquationSolver::SaveValues(const std::vector<double> u, double
 
 // решение
 double MPIHyperbolicEquationSolver::Solve(SolveParams params, bool isSilent) {
-    std::vector<Volume> volumes;
-
-    if (split == SplitType::Blocks) {
-        SplitGrid(0, N, 0, N, 0, N, size, X_AXIS, volumes);
-    }
-    else if (split == SplitType::Tapes) {
-        SplitTape(0, N, 0, N, 0, N, size, X_AXIS, volumes);
-    }
-
+    GridSplitter splitter(N);
+    std::vector<Volume> volumes = splitter.Split(split, size);
     volume = volumes[rank];
 
     FillNeighbours(volumes);
