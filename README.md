@@ -96,7 +96,7 @@
 </table>
 
 
-## Polus (без использования OpenMP)
+## Polus (MPI версия)
 
 ### Lx = Ly = Lz = 1, N = 128, K = 2000
 
@@ -201,18 +201,200 @@
 </table>
 
 
-## Bluegene
+## Blue Gene (MPI версия)
 
 ### Lx = Ly = Lz = 1, N = 128, K = 2000
 
-| Число MPI процессов (P) | Время решения (с) | Ускорение | Погрешность |
-|                     :-: |               :-: |       :-: |         :-: |
-|                       1 |           107.683 |           |  0.00541829 |
-|                       2 |           313.807 |           |  0.00541829 |
-|                       4 |           438.996 |           |  0.00541829 |
-|                       8 |           217.415 |           |  0.00541829 |
-|                      16 |           230.718 |           |  0.00541829 |
-|                      32 |           125.958 |           |  0.00541829 |
-|                      64 |           56.3501 |           |  0.00541829 |
-|                     128 |            24.533 |           |  0.00541829 |
-|                     256 |           9.87815 |           |  0.00541829 |
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>141.493</td><td>1.000</td><td>0.00541829</td><td>141.494</td><td>1.000</td><td>0.00541829</td></tr>
+    <tr align="center"><td>2</td><td>77.0068</td><td>1.837</td><td>0.00541829</td><td>77.0072</td><td>1.837</td><td>0.00541829</td></tr>
+    <tr align="center"><td>4</td><td>40.8615</td><td>3.463</td><td>0.00541829</td><td>40.0407</td><td>3.534</td><td>0.00541829</td></tr>
+    <tr align="center"><td>8</td><td>21.9844</td><td>6.436</td><td>0.00541829</td><td>20.883</td><td>6.776</td><td>0.00541829</td></tr>
+    <tr align="center"><td>16</td><td>11.5286</td><td>12.273</td><td>0.00541829</td><td>11.2159</td><td>12.615</td><td>0.00541829</td></tr>
+    <tr align="center"><td>32</td><td>6.04969</td><td>23.388</td><td>0.00541829</td><td>7.17778</td><td>19.713</td><td>0.00541829</td></tr>
+    <tr align="center"><td>64</td><td>3.23408</td><td>43.751</td><td>0.00541829</td><td>6.74018</td><td>20.993</td><td>0.00541829</td></tr>
+    <tr align="center"><td>128</td><td>1.69645</td><td>83.405</td><td>0.00541829</td><td>9.62115</td><td>14.707</td><td>0.00541829</td></tr>
+    <tr align="center"><td>256</td><td>0.901327</td><td>156.983</td><td>0.00541829</td><td>-</td><td>-</td><td>-</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>1110.44</td><td>1.000</td><td>0.00542011</td><td>1110.44</td><td>1.000</td><td>0.00542011</td></tr>
+    <tr align="center"><td>2</td><td>605.897</td><td>1.833</td><td>0.00542011</td><td>605.875</td><td>1.833</td><td>0.00542011</td></tr>
+    <tr align="center"><td>4</td><td>322.288</td><td>3.445</td><td>0.00542011</td><td>315.013</td><td>3.525</td><td>0.00542011</td></tr>
+    <tr align="center"><td>8</td><td>174.383</td><td>6.368</td><td>0.00542011</td><td>162.972</td><td>6.814</td><td>0.00542011</td></tr>
+    <tr align="center"><td>16</td><td>90.9261</td><td>12.213</td><td>0.00542011</td><td>84.5998</td><td>13.126</td><td>0.00542011</td></tr>
+    <tr align="center"><td>32</td><td>47.7614</td><td>23.250</td><td>0.00542011</td><td>48.3104</td><td>22.986</td><td>0.00542011</td></tr>
+    <tr align="center"><td>64</td><td>25.336</td><td>43.829</td><td>0.00542011</td><td>36.0454</td><td>30.807</td><td>0.00542011</td></tr>
+    <tr align="center"><td>128</td><td>13.4745</td><td>82.410</td><td>0.00542011</td><td>42.6008</td><td>26.066</td><td>0.00542011</td></tr>
+    <tr align="center"><td>256</td><td>6.70683</td><td>165.569</td><td>0.00542011</td><td>70.5973</td><td>15.729</td><td>0.00542011</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>8600.92</td><td>1.000</td><td>0.00542056</td><td>9423.54</td><td>1.000</td><td>0.00542056</td></tr>
+    <tr align="center"><td>2</td><td>4751.89</td><td>1.810</td><td>0.00542056</td><td>4759.36</td><td>1.980</td><td>0.00542056</td></tr>
+    <tr align="center"><td>4</td><td>2568.59</td><td>3.348</td><td>0.00542056</td><td>2491.81</td><td>3.782</td><td>0.00542056</td></tr>
+    <tr align="center"><td>8</td><td>1380.79</td><td>6.229</td><td>0.00542056</td><td>1284.44</td><td>7.337</td><td>0.00542056</td></tr>
+    <tr align="center"><td>16</td><td>722.163</td><td>11.910</td><td>0.00542056</td><td>656.146</td><td>14.362</td><td>0.00542056</td></tr>
+    <tr align="center"><td>32</td><td>380.695</td><td>22.593</td><td>0.00542056</td><td>352.157</td><td>26.759</td><td>0.00542056</td></tr>
+    <tr align="center"><td>64</td><td>202.1</td><td>42.558</td><td>0.00542056</td><td>223.976</td><td>42.074</td><td>0.00542056</td></tr>
+    <tr align="center"><td>128</td><td>104.098</td><td>82.623</td><td>0.00542056</td><td>210.467</td><td>44.774</td><td>0.00542056</td></tr>
+    <tr align="center"><td>256</td><td>52.0685</td><td>165.185</td><td>0.00542056</td><td>312.152</td><td>30.188</td><td>0.00542056</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = π, N = 128, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>142.496</td><td>1.000</td><td>0.000549676</td><td>142.496</td><td>1.000</td><td>0.000549676</td></tr>
+    <tr align="center"><td>2</td><td>77.4895</td><td>1.839</td><td>0.000549676</td><td>77.4894</td><td>1.839</td><td>0.000549676</td></tr>
+    <tr align="center"><td>4</td><td>41.1135</td><td>3.466</td><td>0.000549676</td><td>40.3135</td><td>3.535</td><td>0.000549676</td></tr>
+    <tr align="center"><td>8</td><td>22.1162</td><td>6.443</td><td>0.000549676</td><td>20.9752</td><td>6.794</td><td>0.000549676</td></tr>
+    <tr align="center"><td>16</td><td>11.6038</td><td>12.280</td><td>0.000549676</td><td>11.2888</td><td>12.623</td><td>0.000549676</td></tr>
+    <tr align="center"><td>32</td><td>6.08839</td><td>23.405</td><td>0.000549676</td><td>7.16593</td><td>19.885</td><td>0.000549676</td></tr>
+    <tr align="center"><td>64</td><td>3.25425</td><td>43.788</td><td>0.000549676</td><td>6.74699</td><td>21.120</td><td>0.000549676</td></tr>
+    <tr align="center"><td>128</td><td>1.70468</td><td>83.591</td><td>0.000549676</td><td>9.62002</td><td>14.812</td><td>0.000549676</td></tr>
+    <tr align="center"><td>256</td><td>1.50589</td><td>94.626</td><td>0.000549676</td><td>-</td><td>-</td><td>-</td></tr>
+</table>
+
+### Lx = Ly = Lz = π, N = 256, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>1120.28</td><td>1.000</td><td>0.000549861</td><td>1120.28</td><td>1.000</td><td>0.000549861</td></tr>
+    <tr align="center"><td>2</td><td>610.702</td><td>1.834</td><td>0.000549861</td><td>610.702</td><td>1.834</td><td>0.000549861</td></tr>
+    <tr align="center"><td>4</td><td>324.514</td><td>3.452</td><td>0.000549861</td><td>317.597</td><td>3.527</td><td>0.000549861</td></tr>
+    <tr align="center"><td>8</td><td>175.456</td><td>6.385</td><td>0.000549861</td><td>163.753</td><td>6.841</td><td>0.000549861</td></tr>
+    <tr align="center"><td>16</td><td>91.5347</td><td>12.239</td><td>0.000549861</td><td>85.2042</td><td>13.148</td><td>0.000549861</td></tr>
+    <tr align="center"><td>32</td><td>48.1049</td><td>23.288</td><td>0.000549861</td><td>48.4248</td><td>23.134</td><td>0.000549861</td></tr>
+    <tr align="center"><td>64</td><td>25.5064</td><td>43.922</td><td>0.000549861</td><td>36.1936</td><td>30.952</td><td>0.000549861</td></tr>
+    <tr align="center"><td>128</td><td>13.1408</td><td>85.252</td><td>0.000549861</td><td>42.6262</td><td>26.281</td><td>0.000549861</td></tr>
+    <tr align="center"><td>256</td><td>7.2389</td><td>154.758</td><td>0.000549861</td><td>70.9196</td><td>15.796</td><td>0.000549861</td></tr>
+</table>
+
+### Lx = Ly = Lz = π, N = 512, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>8605.17</td><td>1.000</td><td>0.000549907</td><td>9431.81</td><td>1.000</td><td>0.000549907</td></tr>
+    <tr align="center"><td>2</td><td>4754.13</td><td>1.810</td><td>0.000549907</td><td>4765.72</td><td>1.979</td><td>0.000549907</td></tr>
+    <tr align="center"><td>4</td><td>2574.72</td><td>3.342</td><td>0.000549907</td><td>2497.13</td><td>3.777</td><td>0.000549907</td></tr>
+    <tr align="center"><td>8</td><td>1392.04</td><td>6.182</td><td>0.000549907</td><td>1293.15</td><td>7.294</td><td>0.000549907</td></tr>
+    <tr align="center"><td>16</td><td>728.384</td><td>11.814</td><td>0.000549907</td><td>661.571</td><td>14.257</td><td>0.000549907</td></tr>
+    <tr align="center"><td>32</td><td>383.046</td><td>22.465</td><td>0.000549907</td><td>353.86</td><td>26.654</td><td>0.000549907</td></tr>
+    <tr align="center"><td>64</td><td>202.853</td><td>42.421</td><td>0.000549907</td><td>225.365</td><td>41.851</td><td>0.000549907</td></tr>
+    <tr align="center"><td>128</td><td>103.621</td><td>83.045</td><td>0.000549907</td><td>211.249</td><td>44.648</td><td>0.000549907</td></tr>
+    <tr align="center"><td>256</td><td>52.5081</td><td>163.883</td><td>0.000549907</td><td>316.831</td><td>29.769</td><td>0.000549907</td></tr>
+</table>
+
+## Blue Gene (гибридная версия, блочное разбиение)
+
+### Lx = Ly = Lz = 1, N = 128, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+OpenMP</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>141.493</td><td>1.000</td><td>0.00541829</td><td>87.9429</td><td>1.000</td><td>0.00541829</td><td>1.609</td></tr>
+    <tr align="center"><td>2</td><td>77.0068</td><td>1.837</td><td>0.00541829</td><td>47.2583</td><td>1.861</td><td>0.00541829</td><td>1.629</td></tr>
+    <tr align="center"><td>4</td><td>40.8615</td><td>3.463</td><td>0.00541829</td><td>24.6753</td><td>3.564</td><td>0.00541829</td><td>1.656</td></tr>
+    <tr align="center"><td>8</td><td>21.9844</td><td>6.436</td><td>0.00541829</td><td>12.9544</td><td>6.789</td><td>0.00541829</td><td>1.697</td></tr>
+    <tr align="center"><td>16</td><td>11.5286</td><td>12.273</td><td>0.00541829</td><td>6.78328</td><td>12.965</td><td>0.00541829</td><td>1.700</td></tr>
+    <tr align="center"><td>32</td><td>6.04969</td><td>23.388</td><td>0.00541829</td><td>3.49826</td><td>25.139</td><td>0.00541829</td><td>1.729</td></tr>
+    <tr align="center"><td>64</td><td>3.23408</td><td>43.751</td><td>0.00541829</td><td>1.83381</td><td>47.956</td><td>0.00541829</td><td>1.764</td></tr>
+    <tr align="center"><td>128</td><td>1.69645</td><td>83.405</td><td>0.00541829</td><td>1.02677</td><td>85.650</td><td>0.00541829</td><td>1.652</td></tr>
+    <tr align="center"><td>256</td><td>0.901327</td><td>156.983</td><td>0.00541829</td><td>0.603308</td><td>145.768</td><td>0.00541829</td><td>1.494</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+OpenMP</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>1110.44</td><td>1.000</td><td>0.00542011</td><td>682.316</td><td>1.000</td><td>0.00542011</td><td>1.627</td></tr>
+    <tr align="center"><td>2</td><td>605.897</td><td>1.833</td><td>0.00542011</td><td>366.57</td><td>1.861</td><td>0.00542011</td><td>1.653</td></tr>
+    <tr align="center"><td>4</td><td>322.288</td><td>3.445</td><td>0.00542011</td><td>192.21</td><td>3.550</td><td>0.00542011</td><td>1.677</td></tr>
+    <tr align="center"><td>8</td><td>174.383</td><td>6.368</td><td>0.00542011</td><td>100.854</td><td>6.765</td><td>0.00542011</td><td>1.729</td></tr>
+    <tr align="center"><td>16</td><td>90.9261</td><td>12.213</td><td>0.00542011</td><td>52.1929</td><td>13.073</td><td>0.00542011</td><td>1.742</td></tr>
+    <tr align="center"><td>32</td><td>47.7614</td><td>23.250</td><td>0.00542011</td><td>26.8175</td><td>25.443</td><td>0.00542011</td><td>1.781</td></tr>
+    <tr align="center"><td>64</td><td>25.336</td><td>43.829</td><td>0.00542011</td><td>13.8613</td><td>49.225</td><td>0.00542011</td><td>1.828</td></tr>
+    <tr align="center"><td>128</td><td>13.4745</td><td>82.410</td><td>0.00542011</td><td>7.21106</td><td>94.621</td><td>0.00542011</td><td>1.869</td></tr>
+    <tr align="center"><td>256</td><td>6.70683</td><td>165.569</td><td>0.00542011</td><td>4.45263</td><td>153.239</td><td>0.00542011</td><td>1.506</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+OpenMP</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>8600.92</td><td>1.000</td><td>0.00542056</td><td>5531.18</td><td>1.000</td><td>0.00542056</td><td>1.555</td></tr>
+    <tr align="center"><td>2</td><td>4751.89</td><td>1.810</td><td>0.00542056</td><td>2895.61</td><td>1.910</td><td>0.00542056</td><td>1.641</td></tr>
+    <tr align="center"><td>4</td><td>2568.59</td><td>3.348</td><td>0.00542056</td><td>1517.01</td><td>3.646</td><td>0.00542056</td><td>1.693</td></tr>
+    <tr align="center"><td>8</td><td>1380.79</td><td>6.229</td><td>0.00542056</td><td>794.502</td><td>6.962</td><td>0.00542056</td><td>1.738</td></tr>
+    <tr align="center"><td>16</td><td>722.163</td><td>11.910</td><td>0.00542056</td><td>407.951</td><td>13.558</td><td>0.00542056</td><td>1.770</td></tr>
+    <tr align="center"><td>32</td><td>380.695</td><td>22.593</td><td>0.00542056</td><td>210.244</td><td>26.308</td><td>0.00542056</td><td>1.811</td></tr>
+    <tr align="center"><td>64</td><td>202.1</td><td>42.558</td><td>0.00542056</td><td>108.913</td><td>50.785</td><td>0.00542056</td><td>1.856</td></tr>
+    <tr align="center"><td>128</td><td>104.098</td><td>82.623</td><td>0.00542056</td><td>55.9623</td><td>98.838</td><td>0.00542056</td><td>1.860</td></tr>
+    <tr align="center"><td>256</td><td>52.0685</td><td>165.185</td><td>0.00542056</td><td>29.8807</td><td>185.109</td><td>0.00542056</td><td>1.743</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = π, N = 128, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+OpenMP</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>142.496</td><td>1.000</td><td>0.000549676</td><td>88.0216</td><td>1.000</td><td>0.000549676</td><td>1.619</td></tr>
+    <tr align="center"><td>2</td><td>77.4895</td><td>1.839</td><td>0.000549676</td><td>47.2734</td><td>1.862</td><td>0.000549676</td><td>1.639</td></tr>
+    <tr align="center"><td>4</td><td>41.1135</td><td>3.466</td><td>0.000549676</td><td>24.6981</td><td>3.564</td><td>0.000549676</td><td>1.665</td></tr>
+    <tr align="center"><td>8</td><td>22.1162</td><td>6.443</td><td>0.000549676</td><td>12.9627</td><td>6.790</td><td>0.000549676</td><td>1.706</td></tr>
+    <tr align="center"><td>16</td><td>11.6038</td><td>12.280</td><td>0.000549676</td><td>6.7755</td><td>12.991</td><td>0.000549676</td><td>1.713</td></tr>
+    <tr align="center"><td>32</td><td>6.08839</td><td>23.405</td><td>0.000549676</td><td>3.49033</td><td>25.219</td><td>0.000549676</td><td>1.744</td></tr>
+    <tr align="center"><td>64</td><td>3.25425</td><td>43.788</td><td>0.000549676</td><td>1.8336</td><td>48.005</td><td>0.000549676</td><td>1.775</td></tr>
+    <tr align="center"><td>128</td><td>1.70468</td><td>83.591</td><td>0.000549676</td><td>1.02571</td><td>85.815</td><td>0.000549676</td><td>1.662</td></tr>
+    <tr align="center"><td>256</td><td>1.50589</td><td>94.626</td><td>0.000549676</td><td>1.15484</td><td>76.220</td><td>0.000549676</td><td>1.304</td></tr>
+</table>
+
+### Lx = Ly = Lz = π, N = 256, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+OpenMP</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>1120.28</td><td>1.000</td><td>0.000549861</td><td>684.851</td><td>1.000</td><td>0.000549861</td><td>1.636</td></tr>
+    <tr align="center"><td>2</td><td>610.702</td><td>1.834</td><td>0.000549861</td><td>367.672</td><td>1.863</td><td>0.000549861</td><td>1.661</td></tr>
+    <tr align="center"><td>4</td><td>324.514</td><td>3.452</td><td>0.000549861</td><td>192.997</td><td>3.549</td><td>0.000549861</td><td>1.681</td></tr>
+    <tr align="center"><td>8</td><td>175.456</td><td>6.385</td><td>0.000549861</td><td>101.139</td><td>6.771</td><td>0.000549861</td><td>1.735</td></tr>
+    <tr align="center"><td>16</td><td>91.5347</td><td>12.239</td><td>0.000549861</td><td>52.277</td><td>13.100</td><td>0.000549861</td><td>1.751</td></tr>
+    <tr align="center"><td>32</td><td>48.1049</td><td>23.288</td><td>0.000549861</td><td>26.8123</td><td>25.542</td><td>0.000549861</td><td>1.794</td></tr>
+    <tr align="center"><td>64</td><td>25.5064</td><td>43.922</td><td>0.000549861</td><td>13.8648</td><td>49.395</td><td>0.000549861</td><td>1.840</td></tr>
+    <tr align="center"><td>128</td><td>13.1408</td><td>85.252</td><td>0.000549861</td><td>7.21582</td><td>94.910</td><td>0.000549861</td><td>1.821</td></tr>
+    <tr align="center"><td>256</td><td>7.2389</td><td>154.758</td><td>0.000549861</td><td>4.64308</td><td>147.499</td><td>0.000549861</td><td>1.559</td></tr>
+</table>
+
+### Lx = Ly = Lz = π, N = 512, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+OpenMP</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>8605.17</td><td>1.000</td><td>0.000549907</td><td>5541.26</td><td>1.000</td><td>0.000549907</td><td>1.553</td></tr>
+    <tr align="center"><td>2</td><td>4754.13</td><td>1.810</td><td>0.000549907</td><td>2894.92</td><td>1.914</td><td>0.000549907</td><td>1.642</td></tr>
+    <tr align="center"><td>4</td><td>2574.72</td><td>3.342</td><td>0.000549907</td><td>1519.12</td><td>3.648</td><td>0.000549907</td><td>1.695</td></tr>
+    <tr align="center"><td>8</td><td>1392.04</td><td>6.182</td><td>0.000549907</td><td>798.428</td><td>6.940</td><td>0.000549907</td><td>1.743</td></tr>
+    <tr align="center"><td>16</td><td>728.384</td><td>11.814</td><td>0.000549907</td><td>408.788</td><td>13.555</td><td>0.000549907</td><td>1.782</td></tr>
+    <tr align="center"><td>32</td><td>383.046</td><td>22.465</td><td>0.000549907</td><td>210.271</td><td>26.353</td><td>0.000549907</td><td>1.822</td></tr>
+    <tr align="center"><td>64</td><td>202.853</td><td>42.421</td><td>0.000549907</td><td>108.978</td><td>50.848</td><td>0.000549907</td><td>1.861</td></tr>
+    <tr align="center"><td>128</td><td>103.621</td><td>83.045</td><td>0.000549907</td><td>56.0311</td><td>98.896</td><td>0.000549907</td><td>1.849</td></tr>
+    <tr align="center"><td>256</td><td>52.5081</td><td>163.883</td><td>0.000549907</td><td>29.3193</td><td>188.997</td><td>0.000549907</td><td>1.791</td></tr>
+</table>
