@@ -6,6 +6,9 @@ function Visualizer() {
     this.gridSizeBox = document.getElementById('gridSizeBox')
     this.gridSizeBox.addEventListener('change', () => this.Draw())
 
+    this.splitBox = document.getElementById('splitBox')
+    this.splitBox.addEventListener('change', () => this.Draw())
+
     this.processorsBox = document.getElementById('processorsBox')
     this.processorsBox.addEventListener('change', () => this.Draw())
 
@@ -222,6 +225,7 @@ Visualizer.prototype.FindNeighbours = function(volumes) {
 Visualizer.prototype.Draw = function() {
     let N = +this.gridSizeBox.value
     let P = +this.processorsBox.value
+    let split = this.splitBox.value
 
     this.neighbourBox.max = P - 1
 
@@ -235,7 +239,15 @@ Visualizer.prototype.Draw = function() {
     this.info.innerHTML += '<b>N</b>: ' + N + '<br>'
     this.info.innerHTML += '<b>P</b>: ' + P + '<br>'
 
-    let volumes = this.Split(0, N, 0, N, 0, N, P, 'x')
+    let volumes = []
+
+    if (split == 'blocks') {
+        volumes = this.Split(0, N, 0, N, 0, N, P, 'x')
+    }
+    else if (split == 'tapes') {
+        volumes = this.SplitTape(0, N, 0, N, 0, N, P, 'x')
+    }
+
     let neighbours = this.FindNeighbours(volumes)
 
     for (let i = 0; i < P; i++) {

@@ -53,3 +53,7 @@ input[type="number"] {
     width: 50px;
     margin-bottom: 5px;
 }
+
+select {
+    margin-bottom: 5px;
+}
