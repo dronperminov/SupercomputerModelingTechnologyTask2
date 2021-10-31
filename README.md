@@ -33,6 +33,7 @@
 
 Для визуализации получаемых решений написан визуализатор (принимает json файлы, генерируемые программой): https://programforyou.ru/tests/supercomputer-modeling-technology/solve-visualizer
 
+<img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/solve.gif">
 
 ## Сборка
 
@@ -54,6 +55,8 @@
 * по выбранной оси делим область пополам и рекурсивно запускаем для этих подобластей
 
 Для большей наглядности реализован визуализатор разбиения с возможностью установки размера сетки и числа процессов: https://programforyou.ru/tests/supercomputer-modeling-technology/split-visualizer
+
+<img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split.gif">
 
 ### Получающиеся разбиения
 
