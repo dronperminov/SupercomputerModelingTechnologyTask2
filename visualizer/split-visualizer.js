@@ -155,6 +155,63 @@ Visualizer.prototype.Split = function(xmin, xmax, ymin, ymax, zmin, zmax, size, 
     return splited
 }
 
+Visualizer.prototype.Decompose = function(n) {
+    let dividers = []
+
+    for (let i = 2; i <= n; i++) {
+        while (n % i == 0) {
+            dividers.push(i)
+            n /= i
+        }
+    }
+
+    while (dividers.length < 3)
+        dividers.push(1)
+
+    if (dividers.length > 3) {
+        for (let i = 0; i < dividers.length && dividers.length > 3; i++) {
+            let p = dividers[i] * dividers[i + 1]
+            dividers.splice(i, 2, p)
+        }
+
+        dividers.sort()
+    }
+
+    return dividers
+}
+
+Visualizer.prototype.SplitProduct = function(xmin, xmax, ymin, ymax, zmin, zmax, size) {
+    let dividers = this.Decompose(size)
+    let px = dividers[0]
+    let py = dividers[1]
+    let pz = dividers[2]
+
+    let dx = Math.max(1, Math.floor((xmax - xmin + 1) / px))
+    let dy = Math.max(1, Math.floor((ymax - ymin + 1) / py))
+    let dz = Math.max(1, Math.floor((zmax - zmin + 1) / pz))
+
+    let volumes = []
+
+    for (let i = 0; i < px; i++) {
+        for (let j = 0; j < py; j++) {
+            for (let k = 0; k < pz; k++) {
+                let x1 = xmin + i * dx
+                let x2 = i == px - 1 ? xmax : x1 + dx - 1
+
+                let y1 = ymin + j * dy
+                let y2 = j == py - 1 ? ymax : y1 + dy - 1
+
+                let z1 = zmin + k * dz
+                let z2 = k == pz - 1 ? zmax : z1 + dz - 1
+
+                volumes.push(this.MakeParallelepiped(x1, x2, y1, y2, z1, z2))
+            }
+        }
+    }
+
+    return volumes
+}
+
 // 1 in 2
 Visualizer.prototype.IsInside = function(xmin1, xmax1, ymin1, ymax1, xmin2, xmax2, ymin2, ymax2) {
     return xmin2 <= xmin1 && xmax1 <= xmax2 && ymin2 <= ymin1 && ymax1 <= ymax2
@@ -246,6 +303,9 @@ Visualizer.prototype.Draw = function() {
     }
     else if (split == 'tapes') {
         volumes = this.SplitTape(0, N, 0, N, 0, N, P, 'x')
+    }
+    else if (split == 'product') {
+        volumes = this.SplitProduct(0, N, 0, N, 0, N, P)
     }
 
     let neighbours = this.FindNeighbours(volumes)
