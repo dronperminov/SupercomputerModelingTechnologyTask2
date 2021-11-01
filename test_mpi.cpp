@@ -42,6 +42,9 @@ SplitType GetSplit(const char *arg) {
     if (!strcmp(arg, "tapes") || !strcmp(arg, "t"))
         return SplitType::Tapes;
 
+    if (!strcmp(arg, "product") || !strcmp(arg, "p"))
+        return SplitType::Product;
+
     throw "incorrect split strategy";
 }
 

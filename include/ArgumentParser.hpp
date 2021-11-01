@@ -152,6 +152,9 @@ SplitType ArgumentParser::GetSplit(const char *arg) const {
     if (!strcmp(arg, "tapes") || !strcmp(arg, "t"))
         return SplitType::Tapes;
 
+    if (!strcmp(arg, "product") || !strcmp(arg, "p"))
+        return SplitType::Product;
+
     std::cout << "Unknown split type '" << arg << "'" << std::endl;
     throw "Unknown split type";
 }
@@ -207,6 +210,7 @@ void ArgumentParser::Help() const {
         std::cout << "Split types:" << std::endl;
         std::cout << "* blocks (b)  - decomposition of grid by blocks" << std::endl;
         std::cout << "* tapes (t)   - decomposition of grid by tapes" << std::endl;
+        std::cout << "* product (p)   - decomposition of grid by product of three numbers (p = px*py*pz)" << std::endl;
     }
 }
 

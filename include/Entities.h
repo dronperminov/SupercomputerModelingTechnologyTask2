@@ -17,7 +17,8 @@ enum class BoundaryConditionType {
 // тип разбиения сетки
 enum class SplitType {
     Blocks, // блочное разбиение
-    Tapes // ленточное разбиение
+    Tapes, // ленточное разбиение
+    Product // разбиение путём разложения на 3 сомножителя
 };
 
 // граничные условия
@@ -54,6 +55,9 @@ std::ostream& operator<<(std::ostream& os, const SplitType split) {
 
     if (split == SplitType::Tapes)
         return os << "tapes";
+
+    if (split == SplitType::Product)
+        return os << "product";
 
     return os;
 }
