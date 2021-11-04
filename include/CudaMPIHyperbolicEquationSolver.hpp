@@ -8,7 +8,7 @@
 #include "GridSplitter.hpp"
 
 const bool USE_GPU = true;
-const int BLOCK_SIZE = 256; // рамер GPU блока
+const int BLOCK_SIZE = 512; // рамер GPU блока
 
 // аналитическое решение
 __host__ __device__ double AnalyticalSolve(double x, double y, double z, double t, VolumeSize L) {
@@ -24,6 +24,31 @@ __host__ __device__ double Phi(double x, double y, double z, VolumeSize L) {
 
 __host__ __device__ int Index(int i, int j, int k, Volume v) {
     return (i - v.xmin) * v.dy * v.dz + (j - v.ymin) * v.dz + (k - v.zmin);
+}
+
+__host__ __device__ double GetBoundaryValue(int i, int j, int k, double t, BoundaryConditionTypes bt, double hx, double hy, double hz, VolumeSize L, int N) {
+    if (i == 0 || i == N) {
+        if (bt.x == BoundaryConditionType::FirstKind)
+            return 0;
+
+        return AnalyticalSolve(i * hx, j * hy, k * hz, t, L);
+    }
+
+    if (j == 0 || j == N) {
+        if (bt.y == BoundaryConditionType::FirstKind)
+            return 0;
+
+        return AnalyticalSolve(i * hx, j * hy, k * hz, t, L);
+    }
+
+    if (k == 0 || k == N) {
+        if (bt.z == BoundaryConditionType::FirstKind)
+            return 0;
+
+        return AnalyticalSolve(i * hx, j * hy, k * hz, t, L);
+    }
+
+    return 0; // never
 }
 
 __host__ __device__ double FindValue(int size, const double *u, int i, int j, int k, const double *u_recv, const Volume *recvNeighbours, Volume volume) {
@@ -55,17 +80,40 @@ __host__ __device__ double LaplaceOperator(int size, const double *u, int i, int
     return dx + dy + dz;
 }
 
-__global__ void FillZeroLayerKernel(double *u0, int total, int xmin, int ymin, int zmin, int dy, int dz, Volume volume, double hx, double hy, double hz, VolumeSize L) {
+__global__ void FillBoundaryValuesXKernel(double *u, Volume volume, int i, double hx, double hy, double hz, double t, BoundaryConditionTypes bt, VolumeSize L, int N) {
     int index = blockIdx.x*blockDim.x + threadIdx.x;
 
-    if (index >= total)
+    if (index >= volume.dy * volume.dz)
         return;
 
-    int i = xmin + index / (dy*dz);
-    int j = ymin + index % (dy*dz) / dz;
-    int k = zmin + index % dz;
+    int j = volume.ymin + index / volume.dz;
+    int k = volume.zmin + index % volume.dz;
 
-    u0[Index(i, j, k, volume)] = Phi(i * hx, j * hy, k * hz, L);
+    u[Index(i, j, k, volume)] = GetBoundaryValue(i, j, k, t, bt, hx, hy, hz, L, N);
+}
+
+__global__ void FillBoundaryValuesYKernel(double *u, Volume volume, int j, double hx, double hy, double hz, double t, BoundaryConditionTypes bt, VolumeSize L, int N) {
+    int index = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (index >= volume.dx * volume.dz)
+        return;
+
+    int i = volume.xmin + index / volume.dz;
+    int k = volume.zmin + index % volume.dz;
+
+    u[Index(i, j, k, volume)] = GetBoundaryValue(i, j, k, t, bt, hx, hy, hz, L, N);
+}
+
+__global__ void FillBoundaryValuesZKernel(double *u, Volume volume, int k, double hx, double hy, double hz, double t, BoundaryConditionTypes bt, VolumeSize L, int N) {
+    int index = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (index >= volume.dx * volume.dy)
+        return;
+
+    int i = volume.xmin + index / volume.dy;
+    int j = volume.ymin + index % volume.dy;
+
+    u[Index(i, j, k, volume)] = GetBoundaryValue(i, j, k, t, bt, hx, hy, hz, L, N);
 }
 
 __global__ void EvaluateErrorKernel(double *u, double hx, double hy, double hz, double t, VolumeSize L, Volume volume, double *error) {
@@ -100,6 +148,19 @@ __global__ void EvaluateErrorKernel(double *u, double hx, double hy, double hz, 
     }
 }
 
+__global__ void FillZeroLayerKernel(double *u0, int total, int xmin, int ymin, int zmin, int dy, int dz, Volume volume, double hx, double hy, double hz, VolumeSize L) {
+    int index = blockIdx.x*blockDim.x + threadIdx.x;
+
+    if (index >= total)
+        return;
+
+    int i = xmin + index / (dy*dz);
+    int j = ymin + index % (dy*dz) / dz;
+    int k = zmin + index % dz;
+
+    u0[Index(i, j, k, volume)] = Phi(i * hx, j * hy, k * hz, L);
+}
+
 __global__ void FillFirstLayerKernel(double *u1, const double *u0, const double *u0_recv, const Volume *recvNeighbours, int total, int size, int xmin, int ymin, int zmin, int dy, int dz, Volume volume, double hx, double hy, double hz, double tau) {
     int index = blockIdx.x*blockDim.x + threadIdx.x;
 
@@ -126,12 +187,16 @@ __global__ void FillNextLayerKernel(double *u, const double *u0, const double *u
     u[Index(i, j, k, volume)] = 2 * u1[Index(i, j, k, volume)] - u0[Index(i, j, k, volume)] + tau * tau * LaplaceOperator(size, u1, i, j, k, u_recv, recvNeighbours, volume, hx, hy, hz);
 }
 
-void checkCUDAError(const char *msg) {
-    cudaError_t err = cudaGetLastError();
-    if (cudaSuccess != err) {
-        std::cerr << "Cuda error: " << msg << ": " << cudaGetErrorString( err) << "." << std::endl;
-        exit(-1);
-    }                      
+template <typename T>
+inline T* VectorToDevice(const std::vector<T> &hostVector, bool fill = true) {
+    T *deviceVector;
+    cudaMalloc((void**) &deviceVector, hostVector.size() * sizeof(T));
+
+    if (fill) {
+        cudaMemcpyAsync(deviceVector, hostVector.data(), hostVector.size() * sizeof(T), cudaMemcpyHostToDevice, 0);
+    }
+
+    return deviceVector;
 }
 
 std::vector<double> PackVolume(const std::vector<double> &u, Volume v, Volume volume) {
@@ -284,67 +349,77 @@ void FillNeighbours(const std::vector<Volume> &volumes, std::vector<int> &proces
     }
 }
 
-double GetBoundaryValue(int i, int j, int k, double t, BoundaryConditionTypes bt, double hx, double hy, double hz, VolumeSize L, int N) {
-    if (i == 0 || i == N) {
-        if (bt.x == BoundaryConditionType::FirstKind)
-            return 0;
-
-        return AnalyticalSolve(i * hx, j * hy, k * hz, t, L);
-    }
-
-    if (j == 0 || j == N) {
-        if (bt.y == BoundaryConditionType::FirstKind)
-            return 0;
-
-        return AnalyticalSolve(i * hx, j * hy, k * hz, t, L);
-    }
-
-    if (k == 0 || k == N) {
-        if (bt.z == BoundaryConditionType::FirstKind)
-            return 0;
-
-        return AnalyticalSolve(i * hx, j * hy, k * hz, t, L);
-    }
-
-    throw "not boundary value";
-}
-
 // заполнение граничными значениями
 void FillBoundaryValues(std::vector<double> &u, double t, BoundaryConditionTypes bt, double hx, double hy, double hz, VolumeSize L, Volume volume, int N) {
-    if (volume.xmin == 0) {
-        for (int i = volume.ymin; i <= volume.ymax; i++)
-            for (int j = volume.zmin; j <= volume.zmax; j++)
-                u[Index(volume.xmin, i, j, volume)] = GetBoundaryValue(volume.xmin, i, j, t, bt, hx, hy, hz, L, N);
-    }
+    if (volume.xmin > 0 && volume.xmax < N && volume.ymin > 0 && volume.ymax < N && volume.zmin > 0 && volume.zmax < N)
+        return;
 
-    if (volume.xmax == N) {
-        for (int i = volume.ymin; i <= volume.ymax; i++)
-            for (int j = volume.zmin; j <= volume.zmax; j++)
-                u[Index(volume.xmax, i, j, volume)] = GetBoundaryValue(volume.xmax, i, j, t, bt, hx, hy, hz, L, N);
-    }
+    if (!USE_GPU) {
+        if (volume.xmin == 0) {
+            for (int i = volume.ymin; i <= volume.ymax; i++)
+                for (int j = volume.zmin; j <= volume.zmax; j++)
+                    u[Index(volume.xmin, i, j, volume)] = GetBoundaryValue(volume.xmin, i, j, t, bt, hx, hy, hz, L, N);
+        }
 
-    if (volume.ymin == 0) {
-        for (int i = volume.xmin; i <= volume.xmax; i++)
-            for (int j = volume.zmin; j <= volume.zmax; j++)
-                u[Index(i, volume.ymin, j, volume)] = GetBoundaryValue(i, volume.ymin, j, t, bt, hx, hy, hz, L, N);
-    }
+        if (volume.xmax == N) {
+            for (int i = volume.ymin; i <= volume.ymax; i++)
+                for (int j = volume.zmin; j <= volume.zmax; j++)
+                    u[Index(volume.xmax, i, j, volume)] = GetBoundaryValue(volume.xmax, i, j, t, bt, hx, hy, hz, L, N);
+        }
 
-    if (volume.ymax == N) {
-        for (int i = volume.xmin; i <= volume.xmax; i++)
-            for (int j = volume.zmin; j <= volume.zmax; j++)
-                u[Index(i, volume.ymax, j, volume)] = GetBoundaryValue(i, volume.ymax, j, t, bt, hx, hy, hz, L, N);
-    }
+        if (volume.ymin == 0) {
+            for (int i = volume.xmin; i <= volume.xmax; i++)
+                for (int j = volume.zmin; j <= volume.zmax; j++)
+                    u[Index(i, volume.ymin, j, volume)] = GetBoundaryValue(i, volume.ymin, j, t, bt, hx, hy, hz, L, N);
+        }
 
-    if (volume.zmin == 0) {
-        for (int i = volume.xmin; i <= volume.xmax; i++)
-            for (int j = volume.ymin; j <= volume.ymax; j++)
-                u[Index(i, j, volume.zmin, volume)] = GetBoundaryValue(i, j, volume.zmin, t, bt, hx, hy, hz, L, N);
-    }
+        if (volume.ymax == N) {
+            for (int i = volume.xmin; i <= volume.xmax; i++)
+                for (int j = volume.zmin; j <= volume.zmax; j++)
+                    u[Index(i, volume.ymax, j, volume)] = GetBoundaryValue(i, volume.ymax, j, t, bt, hx, hy, hz, L, N);
+        }
 
-    if (volume.zmax == N) {
-        for (int i = volume.xmin; i <= volume.xmax; i++)
-            for (int j = volume.ymin; j <= volume.ymax; j++)
-                u[Index(i, j, volume.zmax, volume)] = GetBoundaryValue(i, j, volume.zmax, t, bt, hx, hy, hz, L, N);
+        if (volume.zmin == 0) {
+            for (int i = volume.xmin; i <= volume.xmax; i++)
+                for (int j = volume.ymin; j <= volume.ymax; j++)
+                    u[Index(i, j, volume.zmin, volume)] = GetBoundaryValue(i, j, volume.zmin, t, bt, hx, hy, hz, L, N);
+        }
+
+        if (volume.zmax == N) {
+            for (int i = volume.xmin; i <= volume.xmax; i++)
+                for (int j = volume.ymin; j <= volume.ymax; j++)
+                    u[Index(i, j, volume.zmax, volume)] = GetBoundaryValue(i, j, volume.zmax, t, bt, hx, hy, hz, L, N);
+        }
+    }
+    else {
+        double *uDevice = VectorToDevice(u);
+
+        if (volume.xmin == 0) {
+            FillBoundaryValuesXKernel<<<((volume.dy * volume.dz + BLOCK_SIZE - 1) / BLOCK_SIZE), BLOCK_SIZE>>>(uDevice, volume, 0, hx, hy, hz, t, bt, L, N);
+        }
+
+        if (volume.xmax == N) {
+            FillBoundaryValuesXKernel<<<((volume.dy * volume.dz + BLOCK_SIZE - 1) / BLOCK_SIZE), BLOCK_SIZE>>>(uDevice, volume, N, hx, hy, hz, t, bt, L, N);
+        }
+
+        if (volume.ymin == 0) {
+            FillBoundaryValuesYKernel<<<((volume.dx * volume.dz + BLOCK_SIZE - 1) / BLOCK_SIZE), BLOCK_SIZE>>>(uDevice, volume, 0, hx, hy, hz, t, bt, L, N);
+        }
+
+        if (volume.ymax == N) {
+            FillBoundaryValuesYKernel<<<((volume.dx * volume.dz + BLOCK_SIZE - 1) / BLOCK_SIZE), BLOCK_SIZE>>>(uDevice, volume, N, hx, hy, hz, t, bt, L, N);
+        }
+
+        if (volume.zmin == 0) {
+            FillBoundaryValuesZKernel<<<((volume.dx * volume.dy + BLOCK_SIZE - 1) / BLOCK_SIZE), BLOCK_SIZE>>>(uDevice, volume, 0, hx, hy, hz, t, bt, L, N);
+        }
+
+        if (volume.zmax == N) {
+            FillBoundaryValuesZKernel<<<((volume.dx * volume.dy + BLOCK_SIZE - 1) / BLOCK_SIZE), BLOCK_SIZE>>>(uDevice, volume, N, hx, hy, hz, t, bt, L, N);
+        }
+
+        cudaMemcpyAsync(u.data(), uDevice, u.size() * sizeof(double), cudaMemcpyDeviceToHost, 0);
+        cudaFree(uDevice);
     }
 }
 
@@ -388,26 +463,18 @@ void FillInitialValues(std::vector<double> &u0, std::vector<double> &u1, Boundar
     else {
         int nblocks = (total + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-        double *u0Device;
-        cudaMalloc((void**) &u0Device, u0.size() * sizeof(double));
+        double *u0Device = VectorToDevice(u0, false);
         FillZeroLayerKernel<<<nblocks, BLOCK_SIZE>>>(u0Device, total, xmin, ymin, zmin, dy, dz, volume, hx, hy, hz, L);
-        cudaMemcpy(u0.data(), u0Device, u0.size() * sizeof(double), cudaMemcpyDeviceToHost);
+        cudaMemcpyAsync(u0.data(), u0Device, u0.size() * sizeof(double), cudaMemcpyDeviceToHost, 0);
 
         std::vector<double> u0_recv = SendRecvValues(u0, processNeighbours, sendNeighbours, recvNeighbours, volume);
 
-        double *u0recvDevice;
-        double *u1Device;
-        Volume *recvNeighboursDevice;
-
-        cudaMalloc((void**) &u1Device, u1.size() * sizeof(double));
-        cudaMalloc((void**) &u0recvDevice, u0_recv.size() * sizeof(double));
-        cudaMalloc((void**) &recvNeighboursDevice, recvNeighbours.size() * sizeof(Volume));
-
-        cudaMemcpy(u0recvDevice, u0_recv.data(), u0_recv.size() * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(recvNeighboursDevice, recvNeighbours.data(), recvNeighbours.size() * sizeof(Volume), cudaMemcpyHostToDevice);
+        double *u0recvDevice = VectorToDevice(u0_recv);
+        double *u1Device = VectorToDevice(u1, false);
+        Volume *recvNeighboursDevice = VectorToDevice(recvNeighbours);
 
         FillFirstLayerKernel<<<nblocks, BLOCK_SIZE>>>(u1Device, u0Device, u0recvDevice, recvNeighboursDevice, total, recvNeighbours.size(), xmin, ymin, zmin, dy, dz, volume, hx, hy, hz, tau);
-        cudaMemcpy(u1.data(), u1Device, u1.size() * sizeof(double), cudaMemcpyDeviceToHost);
+        cudaMemcpyAsync(u1.data(), u1Device, u1.size() * sizeof(double), cudaMemcpyDeviceToHost, 0);
 
         cudaFree(u0Device);
         cudaFree(u0recvDevice);
@@ -445,25 +512,14 @@ void FillNextLayer(const std::vector<double> &u0, const std::vector<double> &u1,
     else {
         int nblocks = (total + BLOCK_SIZE - 1) / BLOCK_SIZE;
 
-        double *u0Device;
-        double *u1Device;
-        double *uDevice;
-        double *urecvDevice;
-        Volume *recvNeighboursDevice;
-
-        cudaMalloc((void**) &u0Device, u0.size() * sizeof(double));
-        cudaMalloc((void**) &u1Device, u1.size() * sizeof(double));
-        cudaMalloc((void**) &uDevice, u.size() * sizeof(double));
-        cudaMalloc((void**) &urecvDevice, u_recv.size() * sizeof(double));
-        cudaMalloc((void**) &recvNeighboursDevice, recvNeighbours.size() * sizeof(Volume));
-
-        cudaMemcpy(u0Device, u0.data(), u0.size() * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(u1Device, u1.data(), u1.size() * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(urecvDevice, u_recv.data(), u_recv.size() * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(recvNeighboursDevice, recvNeighbours.data(), recvNeighbours.size() * sizeof(Volume), cudaMemcpyHostToDevice);
+        double *u0Device = VectorToDevice(u0);
+        double *u1Device = VectorToDevice(u1);
+        double *uDevice = VectorToDevice(u, false);
+        double *urecvDevice = VectorToDevice(u_recv);
+        Volume *recvNeighboursDevice = VectorToDevice(recvNeighbours);
 
         FillNextLayerKernel<<<nblocks, BLOCK_SIZE>>>(uDevice, u0Device, u1Device, urecvDevice, recvNeighboursDevice, total, recvNeighbours.size(), xmin, ymin, zmin, dy, dz, volume, hx, hy, hz, tau);
-        cudaMemcpy(u.data(), uDevice, u.size() * sizeof(double), cudaMemcpyDeviceToHost);
+        cudaMemcpyAsync(u.data(), uDevice, u.size() * sizeof(double), cudaMemcpyDeviceToHost, 0);
 
         cudaFree(u0Device);
         cudaFree(u1Device);
@@ -505,14 +561,13 @@ double EvaluateError(const std::vector<double> &u, double t, double hx, double h
                     localError = std::max(localError, fabs(u[Index(i, j, k, volume)] - AnalyticalSolve(i * hx, j * hy, k * hz, t, L)));
     }
     else {
-        double *uDevice, *errorDevice;
-        cudaMalloc((void**) &uDevice, u.size() * sizeof(double));
+        double *uDevice = VectorToDevice(u);
+        double *errorDevice;
         cudaMalloc((void**) &errorDevice, sizeof(double));
-        cudaMemcpy(uDevice, u.data(), u.size() * sizeof(double), cudaMemcpyHostToDevice);
 
         EvaluateErrorKernel<<<1, BLOCK_SIZE>>>(uDevice, hx, hy, hz, t, L, volume, errorDevice);
 
-        cudaMemcpy(&localError, errorDevice, 1 * sizeof(double), cudaMemcpyDeviceToHost);
+        cudaMemcpyAsync(&localError, errorDevice, 1 * sizeof(double), cudaMemcpyDeviceToHost, 0);
         cudaFree(uDevice);
         cudaFree(errorDevice);
     }
