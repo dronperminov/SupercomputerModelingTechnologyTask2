@@ -64,9 +64,9 @@ submit-bluegene-test: test-mpi
 submit-polus-gpu-test: test-gpu
 	for N in 128 256 512; do \
 		for L in 1; do \
-			for SPLIT in blocks; do \
+			for SPLIT in blocks tapes product; do \
 				for p in 1 2 4 8 16 32 64; do \
-					bsub -n $$p -W 00:30 -gpu "num=2" -J test_gpu_L$$L\_$$N\_$$SPLIT -R "span[ptile=2]" -o /dev/null -e /dev/null OMP_NUM_THREADS=1 mpiexec ./test_gpu test_gpu_L$$L\_$$N\_$$SPLIT\_gpu_x2.txt $$N $$L $$SPLIT; \
+					bsub -n $$p -W 00:30 -gpu "num=2" -J test_gpu_L$$L\_$$N\_$$SPLIT\_P$$p -R "span[ptile=2]" -o /dev/null -e /dev/null OMP_NUM_THREADS=1 mpiexec ./test_gpu test_gpu_L$$L\_$$N\_$$SPLIT.txt $$N $$L $$SPLIT; \
 				done \
 			done \
 		done \
