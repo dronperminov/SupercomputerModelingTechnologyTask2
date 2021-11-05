@@ -3,7 +3,7 @@
 
 ## Программная реализация
 
-Реализовано две программы: последовательная и гибридная параллельная (MPI + OpenMP). Каждая из программ является консольным приложением и принимает входные данные в виде аргументов командной строки. Используются следующие аргументы (доступно при вызове с единственным аргументом `--help`):
+Реализовано три программы: последовательная и две гибридных параллельных (MPI + OpenMP и MPI + CUDA). Каждая из программ является консольным приложением и принимает входные данные в виде аргументов командной строки. Используются следующие аргументы (доступно при вызове с единственным аргументом `--help`):
 
 * `-d` – отладочный режим (по умолчанию не используется)
 * `-Lx` – длина параллелепипеда вдоль оси X (по умолчанию 1)
@@ -49,33 +49,75 @@
 
 ### Особенности параллельной реализации
 
-Для распараллеливания вся сетка разбивается на области (также прямоугольные параллелепипеды) в количестве используемых процессов по следующему алгоритму:
+Для распараллеливания вся сетка разбивается на области (также прямоугольные параллелепипеды) в количестве используемых процессов. Операции, производимые с получаемыми параллелепипедами, обрабатываются с помощью OpenMP в первой гибридной версии и с помощью CUDA ядер во второй гибридной версиях.
+
+#### Блочное разбиение:
 * начнём разбиение с параллелепипеда [0, N] x [0, N] x [0, N], выберем начальную ось (X) и запустим рекурсивный процесс
 * если текущее количество областей (size) равно 1, вернём обрабатываемый параллелепипед
 * если размер нечётный, то по текущей оси выберем область 1 / size и сделаем из неё параллелепипед, и продолжим разбивать область 1 - 1 / size
 * по выбранной оси делим область пополам и рекурсивно запускаем для этих подобластей
 
+#### Ленточное разбиение:
+* выбираем ось, вдоль которой будет производиться разбиение
+* начинаем делить на параллелепипеды по max⁡(1,(x_max-x_min)/size)  элементов
+
+#### Разбиение разложением на множители
+* Раскладываем число на простые сомножители
+* Если получилось менее трёх сомножителей, добавляем единицы до трёх
+* В противном случае, пока сомножителей больше 3, заменяем пары чисел их произведением, а затем сортируем последовательность.
+
 Для большей наглядности реализован визуализатор разбиения с возможностью установки размера сетки и числа процессов: https://programforyou.ru/tests/supercomputer-modeling-technology/split-visualizer
 
 <img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split.gif">
 
-### Получающиеся разбиения
+### Примеры разбиения
+
+#### Блочное разбиение
+<table>
+    <tr>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split2.png"><br>P=2</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split3.png"><br>P=3</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split4.png"><br>P=4</td>
+    </tr>
+    <tr>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split5.png"><br>P=5</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split10.png"><br>P=10</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split14.png"><br>P=14</td>
+    </tr>
+    <tr>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split25.png"><br>P=25</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split30.png"><br>P=30</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/blocks_split60.png"><br>P=60</td>
+    </tr>
+</table>
+
+#### Ленточное разбиение
 
 <table>
     <tr>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split2.png"><br>P=2</td>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split3.png"><br>P=3</td>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split4.png"><br>P=4</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/tapes_split2.png"><br>P=2</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/tapes_split3.png"><br>P=3</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/tapes_split4.png"><br>P=4</td>
     </tr>
     <tr>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split5.png"><br>P=5</td>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split10.png"><br>P=10</td>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split14.png"><br>P=14</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/tapes_split8.png"><br>P=8</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/tapes_split14.png"><br>P=14</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/tapes_split17.png"><br>P=17</td>
+    </tr>
+</table>
+
+#### Разбиение разложением на множители
+
+<table>
+    <tr>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/product_split6.png"><br>P=6</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/product_split11.png"><br>P=11</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/product_split12.png"><br>P=12</td>
     </tr>
     <tr>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split25.png"><br>P=25</td>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split30.png"><br>P=30</td>
-        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/split60.png"><br>P=60</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/product_split18.png"><br>P=18</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/product_split40.png"><br>P=40</td>
+        <td align="center"><img src="https://github.com/dronperminov/SupercomputerModelingTechnologyTask2/blob/master/examples/product_split54.png"><br>P=54</td>
     </tr>
 </table>
 
@@ -206,6 +248,165 @@
     <tr align="center"><td>32</td><td>14.2082</td><td>14.930</td><td>0.000549907</td><td>13.0011</td><td>16.331</td><td>0.000549907</td><td>15.1717</td><td>14.802</td><td>0.000549907</td></tr>
     <tr align="center"><td>40</td><td>13.68</td><td>15.507</td><td>0.000549907</td><td>10.1392</td><td>20.941</td><td>0.000549907</td><td>12.3448</td><td>18.192</td><td>0.000549907</td></tr>
     <tr align="center"><td>64</td><td>8.81245</td><td>24.072</td><td>0.000549907</td><td>7.60838</td><td>27.907</td><td>0.000549907</td><td>8.89526</td><td>25.246</td><td>0.000549907</td></tr>
+</table>
+
+
+## Polus (MPI + CUDA версия)
+
+### Lx = Ly = Lz = 1, N = 128, K = 2000 (без использования CUDA)
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th><th colspan="3">Разбиение разложением на множители</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>10.8421</td><td>1.000</td><td>0.00541829</td><td>10.828</td><td>1.000</td><td>0.00541829</td><td>10.8417</td><td>1.000</td><td>0.00541829</td></tr>
+    <tr align="center"><td>2</td><td>5.56431</td><td>1.949</td><td>0.00541829</td><td>5.54688</td><td>1.952</td><td>0.00541829</td><td>5.61019</td><td>1.933</td><td>0.00541829</td></tr>
+    <tr align="center"><td>4</td><td>2.80274</td><td>3.868</td><td>0.00541829</td><td>2.87798</td><td>3.762</td><td>0.00541829</td><td>2.96835</td><td>3.652</td><td>0.00541829</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 128, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th><th colspan="3">Разбиение разложением на множители</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>0.625809</td><td>1.000</td><td>0.00541829</td><td>0.417379</td><td>1.000</td><td>0.00541829</td><td>0.41405</td><td>1.000</td><td>0.00541829</td></tr>
+    <tr align="center"><td>2</td><td>0.491011</td><td>1.275</td><td>0.00541829</td><td>0.395455</td><td>1.055</td><td>0.00541829</td><td>0.398651</td><td>1.039</td><td>0.00541829</td></tr>
+    <tr align="center"><td>4</td><td>0.235194</td><td>2.661</td><td>0.00541829</td><td>0.235013</td><td>1.776</td><td>0.00541829</td><td>0.234564</td><td>1.765</td><td>0.00541829</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000 (без использования CUDA)
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th><th colspan="3">Разбиение разложением на множители</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>83.0349</td><td>1.000</td><td>0.00542011</td><td>83.024</td><td>1.000</td><td>0.00542011</td><td>83.0116</td><td>1.000</td><td>0.00542011</td></tr>
+    <tr align="center"><td>2</td><td>42.5433</td><td>1.952</td><td>0.00542011</td><td>42.4604</td><td>1.955</td><td>0.00542011</td><td>42.8079</td><td>1.939</td><td>0.00542011</td></tr>
+    <tr align="center"><td>4</td><td>21.3244</td><td>3.894</td><td>0.00542011</td><td>21.7445</td><td>3.818</td><td>0.00542011</td><td>22.1411</td><td>3.749</td><td>0.00542011</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th><th colspan="3">Разбиение разложением на множители</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>3.19642</td><td>1.000</td><td>0.00542011</td><td>3.18848</td><td>1.000</td><td>0.00542011</td><td>3.20082</td><td>1.000</td><td>0.00542011</td></tr>
+    <tr align="center"><td>2</td><td>2.81246</td><td>1.137</td><td>0.00542011</td><td>2.81574</td><td>1.132</td><td>0.00542011</td><td>2.79625</td><td>1.145</td><td>0.00542011</td></tr>
+    <tr align="center"><td>4</td><td>1.39997</td><td>2.283</td><td>0.00542011</td><td>1.39985</td><td>2.278</td><td>0.00542011</td><td>1.39953</td><td>2.287</td><td>0.00542011</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000 (без использования CUDA)
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th><th colspan="3">Разбиение разложением на множители</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>644.438</td><td>1.000</td><td>0.00542056</td><td>663.803</td><td>1.000</td><td>0.00542056</td><td>625.334</td><td>1.000</td><td>0.00542056</td></tr>
+    <tr align="center"><td>2</td><td>328.795</td><td>1.960</td><td>0.00542056</td><td>335.254</td><td>1.980</td><td>0.00542056</td><td>334.403</td><td>1.870</td><td>0.00542056</td></tr>
+    <tr align="center"><td>4</td><td>170.1</td><td>3.789</td><td>0.00542056</td><td>169.7</td><td>3.912</td><td>0.00542056</td><td>201.045</td><td>3.110</td><td>0.00542056</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">Блочное разбиение</th><th colspan="3">Ленточное разбиение</th><th colspan="3">Разбиение разложением на множители</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>25.6305</td><td>1.000</td><td>0.00542056</td><td>25.4344</td><td>1.000</td><td>0.00542056</td><td>25.4935</td><td>1.000</td><td>0.00542056</td></tr>
+    <tr align="center"><td>2</td><td>21.9411</td><td>1.168</td><td>0.00542056</td><td>22.2357</td><td>1.144</td><td>0.00542056</td><td>22.2011</td><td>1.148</td><td>0.00542056</td></tr>
+    <tr align="center"><td>4</td><td>10.5393</td><td>2.432</td><td>0.00542056</td><td>10.5945</td><td>2.401</td><td>0.00542056</td><td>10.5416</td><td>2.418</td><td>0.00542056</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 128, K = 2000, блочное разбиение
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>0.625809</td><td>1.000</td><td>0.00541829</td><td>10.8421</td><td>1.000</td><td>0.00541829</td><td>17.325</td></tr>
+    <tr align="center"><td>2</td><td>0.491011</td><td>1.275</td><td>0.00541829</td><td>5.56431</td><td>1.949</td><td>0.00541829</td><td>11.332</td></tr>
+    <tr align="center"><td>4</td><td>0.235194</td><td>2.661</td><td>0.00541829</td><td>2.80274</td><td>3.868</td><td>0.00541829</td><td>11.917</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 128, K = 2000, ленточное разбиение
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>0.417379</td><td>1.000</td><td>0.00541829</td><td>10.828</td><td>1.000</td><td>0.00541829</td><td>25.943</td></tr>
+    <tr align="center"><td>2</td><td>0.395455</td><td>1.055</td><td>0.00541829</td><td>5.54688</td><td>1.952</td><td>0.00541829</td><td>14.027</td></tr>
+    <tr align="center"><td>4</td><td>0.235013</td><td>1.776</td><td>0.00541829</td><td>2.87798</td><td>3.762</td><td>0.00541829</td><td>12.246</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = 1, N = 128, K = 2000, разбиение разложением на множители
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>0.41405</td><td>1.000</td><td>0.00541829</td><td>10.8417</td><td>1.000</td><td>0.00541829</td><td>26.185</td></tr>
+    <tr align="center"><td>2</td><td>0.398651</td><td>1.039</td><td>0.00541829</td><td>5.61019</td><td>1.933</td><td>0.00541829</td><td>14.073</td></tr>
+    <tr align="center"><td>4</td><td>0.234564</td><td>1.765</td><td>0.00541829</td><td>2.96835</td><td>3.652</td><td>0.00541829</td><td>12.655</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000, блочное разбиение
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>3.19642</td><td>1.000</td><td>0.00542011</td><td>83.0349</td><td>1.000</td><td>0.00542011</td><td>25.977</td></tr>
+    <tr align="center"><td>2</td><td>2.81246</td><td>1.137</td><td>0.00542011</td><td>42.5433</td><td>1.952</td><td>0.00542011</td><td>15.127</td></tr>
+    <tr align="center"><td>4</td><td>1.39997</td><td>2.283</td><td>0.00542011</td><td>21.3244</td><td>3.894</td><td>0.00542011</td><td>15.232</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000, ленточное разбиение
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>3.18848</td><td>1.000</td><td>0.00542011</td><td>83.024</td><td>1.000</td><td>0.00542011</td><td>26.039</td></tr>
+    <tr align="center"><td>2</td><td>2.81574</td><td>1.132</td><td>0.00542011</td><td>42.4604</td><td>1.955</td><td>0.00542011</td><td>15.080</td></tr>
+    <tr align="center"><td>4</td><td>1.39985</td><td>2.278</td><td>0.00542011</td><td>21.7445</td><td>3.818</td><td>0.00542011</td><td>15.533</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = 1, N = 256, K = 2000, разбиение разложением на множители
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>3.20082</td><td>1.000</td><td>0.00542011</td><td>83.0116</td><td>1.000</td><td>0.00542011</td><td>25.934</td></tr>
+    <tr align="center"><td>2</td><td>2.79625</td><td>1.145</td><td>0.00542011</td><td>42.8079</td><td>1.939</td><td>0.00542011</td><td>15.309</td></tr>
+    <tr align="center"><td>4</td><td>1.39953</td><td>2.287</td><td>0.00542011</td><td>22.1411</td><td>3.749</td><td>0.00542011</td><td>15.820</td></tr>
+</table>
+
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000, блочное разбиение
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>25.6305</td><td>1.000</td><td>0.00542056</td><td>644.438</td><td>1.000</td><td>0.00542056</td><td>25.143</td></tr>
+    <tr align="center"><td>2</td><td>21.9411</td><td>1.168</td><td>0.00542056</td><td>328.795</td><td>1.960</td><td>0.00542056</td><td>14.985</td></tr>
+    <tr align="center"><td>4</td><td>10.5393</td><td>2.432</td><td>0.00542056</td><td>170.1</td><td>3.789</td><td>0.00542056</td><td>16.140</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000, ленточное разбиение
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>25.4344</td><td>1.000</td><td>0.00542056</td><td>663.803</td><td>1.000</td><td>0.00542056</td><td>26.099</td></tr>
+    <tr align="center"><td>2</td><td>22.2357</td><td>1.144</td><td>0.00542056</td><td>335.254</td><td>1.980</td><td>0.00542056</td><td>15.077</td></tr>
+    <tr align="center"><td>4</td><td>10.5945</td><td>2.401</td><td>0.00542056</td><td>169.7</td><td>3.912</td><td>0.00542056</td><td>16.018</td></tr>
+</table>
+
+### Lx = Ly = Lz = 1, N = 512, K = 2000, разбиение разложением на множители
+
+<table>
+    <tr><th rowspan="2">Число MPI процессов (P)</th><th colspan="3">MPI</th><th colspan="3">MPI+CUDA</th><th rowspan="2">Ускорение</th></tr>
+    <tr><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th><th>Время решения (с)</th><th>Ускорение</th><th>Погрешность</th></tr>
+    <tr align="center"><td>1</td><td>25.4935</td><td>1.000</td><td>0.00542056</td><td>625.334</td><td>1.000</td><td>0.00542056</td><td>24.529</td></tr>
+    <tr align="center"><td>2</td><td>22.2011</td><td>1.148</td><td>0.00542056</td><td>334.403</td><td>1.870</td><td>0.00542056</td><td>15.062</td></tr>
+    <tr align="center"><td>4</td><td>10.5416</td><td>2.418</td><td>0.00542056</td><td>201.045</td><td>3.110</td><td>0.00542056</td><td>19.072</td></tr>
 </table>
 
 
