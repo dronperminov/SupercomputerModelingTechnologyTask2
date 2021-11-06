@@ -276,6 +276,7 @@
     <tr align="center"><td>1</td><td>10.8421</td><td>1.000</td><td>0.00541829</td><td>10.828</td><td>1.000</td><td>0.00541829</td><td>10.8417</td><td>1.000</td><td>0.00541829</td></tr>
     <tr align="center"><td>2</td><td>5.56431</td><td>1.949</td><td>0.00541829</td><td>5.54688</td><td>1.952</td><td>0.00541829</td><td>5.61019</td><td>1.933</td><td>0.00541829</td></tr>
     <tr align="center"><td>4</td><td>2.80274</td><td>3.868</td><td>0.00541829</td><td>2.87798</td><td>3.762</td><td>0.00541829</td><td>2.96835</td><td>3.652</td><td>0.00541829</td></tr>
+    <tr align="center"><td>6</td><td>1.95402</td><td>5.549</td><td>0.00541829</td><td>2.03811</td><td>5.313</td><td>0.00541829</td><td>1.97781</td><td>5.482</td><td>0.00541829</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 128, K = 2000 (с использования CUDA ядер)
@@ -286,6 +287,7 @@
     <tr align="center"><td>1</td><td>0.625809</td><td>1.000</td><td>0.00541829</td><td>0.417379</td><td>1.000</td><td>0.00541829</td><td>0.41405</td><td>1.000</td><td>0.00541829</td></tr>
     <tr align="center"><td>2</td><td>0.491011</td><td>1.275</td><td>0.00541829</td><td>0.395455</td><td>1.055</td><td>0.00541829</td><td>0.398651</td><td>1.039</td><td>0.00541829</td></tr>
     <tr align="center"><td>4</td><td>0.235194</td><td>2.661</td><td>0.00541829</td><td>0.235013</td><td>1.776</td><td>0.00541829</td><td>0.234564</td><td>1.765</td><td>0.00541829</td></tr>
+    <tr align="center"><td>6</td><td>0.23938</td><td>2.614</td><td>0.00541829</td><td>0.254023</td><td>1.643</td><td>0.00541829</td><td>0.193185</td><td>2.143</td><td>0.00541829</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 256, K = 2000 (без использования CUDA ядер)
@@ -296,6 +298,7 @@
     <tr align="center"><td>1</td><td>83.0349</td><td>1.000</td><td>0.00542011</td><td>83.024</td><td>1.000</td><td>0.00542011</td><td>83.0116</td><td>1.000</td><td>0.00542011</td></tr>
     <tr align="center"><td>2</td><td>42.5433</td><td>1.952</td><td>0.00542011</td><td>42.4604</td><td>1.955</td><td>0.00542011</td><td>42.8079</td><td>1.939</td><td>0.00542011</td></tr>
     <tr align="center"><td>4</td><td>21.3244</td><td>3.894</td><td>0.00542011</td><td>21.7445</td><td>3.818</td><td>0.00542011</td><td>22.1411</td><td>3.749</td><td>0.00542011</td></tr>
+    <tr align="center"><td>6</td><td>14.7643</td><td>5.624</td><td>0.00542011</td><td>14.8906</td><td>5.576</td><td>0.00542011</td><td>14.9234</td><td>5.563</td><td>0.00542011</td></tr>
 </table>
 
 
@@ -307,6 +310,7 @@
     <tr align="center"><td>1</td><td>3.19642</td><td>1.000</td><td>0.00542011</td><td>3.18848</td><td>1.000</td><td>0.00542011</td><td>3.20082</td><td>1.000</td><td>0.00542011</td></tr>
     <tr align="center"><td>2</td><td>2.81246</td><td>1.137</td><td>0.00542011</td><td>2.81574</td><td>1.132</td><td>0.00542011</td><td>2.79625</td><td>1.145</td><td>0.00542011</td></tr>
     <tr align="center"><td>4</td><td>1.39997</td><td>2.283</td><td>0.00542011</td><td>1.39985</td><td>2.278</td><td>0.00542011</td><td>1.39953</td><td>2.287</td><td>0.00542011</td></tr>
+    <tr align="center"><td>6</td><td>0.986884</td><td>3.239</td><td>0.00542011</td><td>0.968354</td><td>3.293</td><td>0.00542011</td><td>0.969411</td><td>3.302</td><td>0.00542011</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 512, K = 2000 (без использования CUDA ядер)
@@ -317,6 +321,7 @@
     <tr align="center"><td>1</td><td>644.438</td><td>1.000</td><td>0.00542056</td><td>663.803</td><td>1.000</td><td>0.00542056</td><td>625.334</td><td>1.000</td><td>0.00542056</td></tr>
     <tr align="center"><td>2</td><td>328.795</td><td>1.960</td><td>0.00542056</td><td>335.254</td><td>1.980</td><td>0.00542056</td><td>334.403</td><td>1.870</td><td>0.00542056</td></tr>
     <tr align="center"><td>4</td><td>170.1</td><td>3.789</td><td>0.00542056</td><td>169.7</td><td>3.912</td><td>0.00542056</td><td>201.045</td><td>3.110</td><td>0.00542056</td></tr>
+    <tr align="center"><td>6</td><td>114.436</td><td>5.631</td><td>0.00542056</td><td>117.82</td><td>5.634</td><td>0.00542056</td><td>112.172</td><td>5.575</td><td>0.00542056</td></tr>
 </table>
 
 
@@ -328,6 +333,7 @@
     <tr align="center"><td>1</td><td>25.6305</td><td>1.000</td><td>0.00542056</td><td>25.4344</td><td>1.000</td><td>0.00542056</td><td>25.4935</td><td>1.000</td><td>0.00542056</td></tr>
     <tr align="center"><td>2</td><td>21.9411</td><td>1.168</td><td>0.00542056</td><td>22.2357</td><td>1.144</td><td>0.00542056</td><td>22.2011</td><td>1.148</td><td>0.00542056</td></tr>
     <tr align="center"><td>4</td><td>10.5393</td><td>2.432</td><td>0.00542056</td><td>10.5945</td><td>2.401</td><td>0.00542056</td><td>10.5416</td><td>2.418</td><td>0.00542056</td></tr>
+    <tr align="center"><td>6</td><td>7.13817</td><td>3.591</td><td>0.00542056</td><td>7.512</td><td>3.386</td><td>0.00542056</td><td>7.47077</td><td>3.412</td><td>0.00542056</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 128, K = 2000, блочное разбиение
@@ -338,6 +344,7 @@
     <tr align="center"><td>1</td><td>10.8421</td><td>1.000</td><td>0.00541829</td><td>0.625809</td><td>1.000</td><td>0.00541829</td><td>17.325</td></tr>
     <tr align="center"><td>2</td><td>5.56431</td><td>1.949</td><td>0.00541829</td><td>0.491011</td><td>1.275</td><td>0.00541829</td><td>11.332</td></tr>
     <tr align="center"><td>4</td><td>2.80274</td><td>3.868</td><td>0.00541829</td><td>0.235194</td><td>2.661</td><td>0.00541829</td><td>11.917</td></tr>
+    <tr align="center"><td>6</td><td>1.95402</td><td>5.549</td><td>0.00541829</td><td>0.23938</td><td>2.614</td><td>0.00541829</td><td>8.163</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 128, K = 2000, ленточное разбиение
@@ -348,6 +355,7 @@
     <tr align="center"><td>1</td><td>10.828</td><td>1.000</td><td>0.00541829</td><td>0.417379</td><td>1.000</td><td>0.00541829</td><td>25.943</td></tr>
     <tr align="center"><td>2</td><td>5.54688</td><td>1.952</td><td>0.00541829</td><td>0.395455</td><td>1.055</td><td>0.00541829</td><td>14.027</td></tr>
     <tr align="center"><td>4</td><td>2.87798</td><td>3.762</td><td>0.00541829</td><td>0.235013</td><td>1.776</td><td>0.00541829</td><td>12.246</td></tr>
+    <tr align="center"><td>6</td><td>2.03811</td><td>5.313</td><td>0.00541829</td><td>0.254023</td><td>1.643</td><td>0.00541829</td><td>8.023</td></tr>
 </table>
 
 
@@ -359,6 +367,7 @@
     <tr align="center"><td>1</td><td>10.8417</td><td>1.000</td><td>0.00541829</td><td>0.41405</td><td>1.000</td><td>0.00541829</td><td>26.185</td></tr>
     <tr align="center"><td>2</td><td>5.61019</td><td>1.933</td><td>0.00541829</td><td>0.398651</td><td>1.039</td><td>0.00541829</td><td>14.073</td></tr>
     <tr align="center"><td>4</td><td>2.96835</td><td>3.652</td><td>0.00541829</td><td>0.234564</td><td>1.765</td><td>0.00541829</td><td>12.655</td></tr>
+    <tr align="center"><td>6</td><td>1.97781</td><td>5.482</td><td>0.00541829</td><td>0.193185</td><td>2.143</td><td>0.00541829</td><td>10.238</td></tr>
 </table>
 
 
@@ -370,6 +379,7 @@
     <tr align="center"><td>1</td><td>83.0349</td><td>1.000</td><td>0.00542011</td><td>3.19642</td><td>1.000</td><td>0.00542011</td><td>25.977</td></tr>
     <tr align="center"><td>2</td><td>42.5433</td><td>1.952</td><td>0.00542011</td><td>2.81246</td><td>1.137</td><td>0.00542011</td><td>15.127</td></tr>
     <tr align="center"><td>4</td><td>21.3244</td><td>3.894</td><td>0.00542011</td><td>1.39997</td><td>2.283</td><td>0.00542011</td><td>15.232</td></tr>
+    <tr align="center"><td>6</td><td>14.7643</td><td>5.624</td><td>0.00542011</td><td>0.986884</td><td>3.239</td><td>0.00542011</td><td>14.961</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 256, K = 2000, ленточное разбиение
@@ -380,6 +390,7 @@
     <tr align="center"><td>1</td><td>83.024</td><td>1.000</td><td>0.00542011</td><td>3.18848</td><td>1.000</td><td>0.00542011</td><td>26.039</td></tr>
     <tr align="center"><td>2</td><td>42.4604</td><td>1.955</td><td>0.00542011</td><td>2.81574</td><td>1.132</td><td>0.00542011</td><td>15.080</td></tr>
     <tr align="center"><td>4</td><td>21.7445</td><td>3.818</td><td>0.00542011</td><td>1.39985</td><td>2.278</td><td>0.00542011</td><td>15.533</td></tr>
+    <tr align="center"><td>6</td><td>14.8906</td><td>5.576</td><td>0.00542011</td><td>0.968354</td><td>3.293</td><td>0.00542011</td><td>15.377</td></tr>
 </table>
 
 
@@ -391,6 +402,7 @@
     <tr align="center"><td>1</td><td>83.0116</td><td>1.000</td><td>0.00542011</td><td>3.20082</td><td>1.000</td><td>0.00542011</td><td>25.934</td></tr>
     <tr align="center"><td>2</td><td>42.8079</td><td>1.939</td><td>0.00542011</td><td>2.79625</td><td>1.145</td><td>0.00542011</td><td>15.309</td></tr>
     <tr align="center"><td>4</td><td>22.1411</td><td>3.749</td><td>0.00542011</td><td>1.39953</td><td>2.287</td><td>0.00542011</td><td>15.820</td></tr>
+    <tr align="center"><td>6</td><td>14.9234</td><td>5.563</td><td>0.00542011</td><td>0.969411</td><td>3.302</td><td>0.00542011</td><td>15.394</td></tr>
 </table>
 
 
@@ -402,6 +414,7 @@
     <tr align="center"><td>1</td><td>644.438</td><td>1.000</td><td>0.00542056</td><td>25.6305</td><td>1.000</td><td>0.00542056</td><td>25.143</td></tr>
     <tr align="center"><td>2</td><td>328.795</td><td>1.960</td><td>0.00542056</td><td>21.9411</td><td>1.168</td><td>0.00542056</td><td>14.985</td></tr>
     <tr align="center"><td>4</td><td>170.1</td><td>3.789</td><td>0.00542056</td><td>10.5393</td><td>2.432</td><td>0.00542056</td><td>16.140</td></tr>
+    <tr align="center"><td>6</td><td>114.436</td><td>5.631</td><td>0.00542056</td><td>7.13817</td><td>3.591</td><td>0.00542056</td><td>16.032</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 512, K = 2000, ленточное разбиение
@@ -412,6 +425,7 @@
     <tr align="center"><td>1</td><td>663.803</td><td>1.000</td><td>0.00542056</td><td>25.4344</td><td>1.000</td><td>0.00542056</td><td>26.099</td></tr>
     <tr align="center"><td>2</td><td>335.254</td><td>1.980</td><td>0.00542056</td><td>22.2357</td><td>1.144</td><td>0.00542056</td><td>15.077</td></tr>
     <tr align="center"><td>4</td><td>169.7</td><td>3.912</td><td>0.00542056</td><td>10.5945</td><td>2.401</td><td>0.00542056</td><td>16.018</td></tr>
+    <tr align="center"><td>6</td><td>117.82</td><td>5.634</td><td>0.00542056</td><td>7.512</td><td>3.386</td><td>0.00542056</td><td>15.684</td></tr>
 </table>
 
 ### Lx = Ly = Lz = 1, N = 512, K = 2000, разбиение разложением на множители
@@ -422,6 +436,7 @@
     <tr align="center"><td>1</td><td>625.334</td><td>1.000</td><td>0.00542056</td><td>25.4935</td><td>1.000</td><td>0.00542056</td><td>24.529</td></tr>
     <tr align="center"><td>2</td><td>334.403</td><td>1.870</td><td>0.00542056</td><td>22.2011</td><td>1.148</td><td>0.00542056</td><td>15.062</td></tr>
     <tr align="center"><td>4</td><td>201.045</td><td>3.110</td><td>0.00542056</td><td>10.5416</td><td>2.418</td><td>0.00542056</td><td>19.072</td></tr>
+    <tr align="center"><td>6</td><td>112.172</td><td>5.575</td><td>0.00542056</td><td>7.47077</td><td>3.412</td><td>0.00542056</td><td>15.015</td></tr>
 </table>
 
 </details>
