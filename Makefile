@@ -28,7 +28,7 @@ test-gpu: test_gpu.cu
 	$(GPU_COMPILER) $(GPU_FLAGS) test_gpu.cu -o test_gpu
 
 submit-polus: main-mpi
-	mpisubmit.pl -p 16 --stdout stdout.txt --stderr error.txt ./main_mpi -- -d -o output.txt -N $(N) -K $(K)
+	mpisubmit.pl -p 4 --stdout stdout.txt --stderr error.txt ./main_mpi -- -d -o output.txt -N $(N) -K $(K)
 
 submit-bluegene: main-mpi
 	mpisubmit.bg -n 16 -m smp --stdout stdout.txt --stderr error.txt ./main_mpi -- -d -o output.txt -N $(N) -K $(K)
@@ -65,7 +65,7 @@ submit-polus-gpu-test: test-gpu
 	for N in 128 256 512; do \
 		for L in 1; do \
 			for SPLIT in blocks tapes product; do \
-				for p in 1 2 4 8 16 32 64; do \
+				for p in 1 2 4 6; do \
 					bsub -n $$p -W 00:30 -gpu "num=2" -J test_gpu_L$$L\_$$N\_$$SPLIT\_P$$p -R "span[ptile=2]" -o /dev/null -e /dev/null OMP_NUM_THREADS=1 mpiexec ./test_gpu test_gpu_L$$L\_$$N\_$$SPLIT.txt $$N $$L $$SPLIT; \
 				done \
 			done \
